@@ -357,11 +357,11 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
               <div key={row.row}>
                 {row.isExitRow && !seatMap.rows[rowIndex - 1]?.isExitRow ? (
                   <div className="my-2 flex items-center gap-3">
-                    <span className="h-px flex-1 bg-orange/50" />
-                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-orange">
+                    <span className="h-px flex-1 bg-amber-ink/30" />
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-amber-ink">
                       Exit row
                     </span>
-                    <span className="h-px flex-1 bg-orange/50" />
+                    <span className="h-px flex-1 bg-amber-ink/30" />
                   </div>
                 ) : null}
 
@@ -438,7 +438,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
                 }`}
               >
                 {notice.kind === 'error' ? (
-                  <WarningIcon className="mt-0.5 shrink-0 text-orange" />
+                  <WarningIcon className="mt-0.5 shrink-0 text-amber-ink" />
                 ) : null}
                 {notice.text}
               </p>

@@ -91,7 +91,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
               onChange={setAirlineChecked}
               leading={<LogoMark size={20} />}
               trailing={
-                <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue">
+                <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue-dark">
                   Available
                 </span>
               }
@@ -125,7 +125,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
                       <LogoMark size={22} />
                       <span className="text-sm font-bold text-navy">NovaAir</span>
                       <span className="text-sm text-ink-muted">{result.flightNumber}</span>
-                      <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue">
+                      <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue-dark">
                         {result.cabin}
                       </span>
                     </div>
@@ -135,7 +135,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
                         <span className="field-label">Departs</span>
                         <p className="text-xl font-bold text-navy">{result.departureTime}</p>
                       </div>
-                      <div className="min-w-[180px] flex-1">
+                      <div className="mx-auto w-full min-w-[180px] max-w-[300px]">
                         <RouteLine from={from.code} to={to.code} stops={result.stops} />
                         <p className="mt-1.5 text-center text-xs text-ink-muted">
                           {result.durationLabel}

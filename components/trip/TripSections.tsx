@@ -108,7 +108,7 @@ export function TripSections({
                   {passenger.type === 'adult' ? 'Adult' : `Child, age ${passenger.age}`}
                 </p>
               </div>
-              <span className="rounded-[12px] bg-blue-tint px-4 py-2 text-base font-bold text-blue">
+              <span className="rounded-[12px] bg-blue-tint px-4 py-2 text-base font-bold text-blue-dark">
                 {passenger.seatId ?? 'No seat'}
               </span>
             </li>
