@@ -9,7 +9,7 @@ import type { NovaAirEventMap, NovaAirEventName } from './events'
  */
 
 /** True when a PostHog project key is set, so PostHog is running. */
-export function analyticsIsOn(): boolean {
+function analyticsIsOn(): boolean {
   return typeof window !== 'undefined' && Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY)
 }
 
