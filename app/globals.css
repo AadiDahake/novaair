@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0b0b2b;
+  --color-navy-soft: #2a2a52;
+  --color-blue: #0a66ff;
+  --color-blue-dark: #0851cc;
+  --color-blue-tint: #eaf1ff;
+  --color-orange: #f5a623;
+  --color-orange-tint: #fff7e9;
+  --color-seat-booked: #c9ccd6;
+  --color-nose: #eef2ff;
+  --color-ink-muted: #6b6e85;
+  --color-line: #e8e9f2;
+  --color-green: #12a15c;
+  --color-page-from: #dbe9ff;
+  --color-page-to: #ece9fb;
+
+  --radius-shell: 32px;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: linear-gradient(135deg, var(--color-page-from) 0%, #e4e7fb 48%, var(--color-page-to) 100%);
+    background-attachment: fixed;
+    color: var(--color-navy);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  /* The one white container the whole product sits inside. */
+  .app-shell {
+    background: #ffffff;
+    border-radius: var(--radius-shell);
+    box-shadow: 0 24px 60px -30px rgba(11, 11, 43, 0.28);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    line-height: 1;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease,
+      box-shadow 140ms ease, transform 140ms ease;
+    white-space: nowrap;
+  }
+
+  .pill:active {
+    transform: translateY(1px);
+  }
+
+  .pill-primary {
+    background: var(--color-blue);
+    color: #ffffff;
+    box-shadow: 0 10px 24px -12px rgba(10, 102, 255, 0.75);
+  }
+
+  .pill-primary:hover {
+    background: var(--color-blue-dark);
+  }
+
+  .pill-primary:disabled {
+    background: #b9cdf5;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .pill-dark {
+    background: var(--color-navy);
+    color: #ffffff;
+  }
+
+  .pill-dark:hover {
+    background: var(--color-navy-soft);
+  }
+
+  .pill-outline {
+    background: #ffffff;
+    color: var(--color-navy);
+    border: 1.5px solid var(--color-line);
+  }
+
+  .pill-outline:hover {
+    border-color: #c9cbe0;
+    background: #fbfbff;
+  }
+
+  .card {
+    background: #ffffff;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+
+  .field-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-ink-muted);
+  }
+
+  .field-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-navy);
+  }
+
+  .text-input {
+    width: 100%;
+    border-radius: 14px;
+    border: 1.5px solid var(--color-line);
+    background: #ffffff;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-navy);
+  }
+
+  .text-input::placeholder {
+    color: #a8aabb;
+    font-weight: 400;
+  }
+
+  .text-input:hover {
+    border-color: #c9cbe0;
+  }
+}
+
+/* The hatch pattern on a seat held for accessible seating. */
+.seat-blocked-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    #d9dbe4 0 4px,
+    #eceef4 4px 8px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
