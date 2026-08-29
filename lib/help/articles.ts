@@ -115,7 +115,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         ],
       },
       {
-        heading: 'If you cannot find seats together',
+        heading: 'If your party is not seated together',
         body: [
           'Call NovaAir on 1-800-555-0142 and an agent will look at the seat map with you.',
           'You can also ask at the gate on the day of travel. Seats together are not guaranteed.',

@@ -33,7 +33,11 @@ export function PassengerSelector({
             type="button"
             role="radio"
             aria-checked={isSelected}
+            aria-label={`${passenger.firstName} ${passenger.lastName}, ${
+              passenger.type === 'adult' ? 'adult' : `child age ${passenger.age}`
+            }, seat ${seat ?? 'not chosen'}`}
             data-passenger-index={index}
+            data-passenger-id={passenger.id}
             onClick={() => onSelect(index)}
             className={`flex w-full items-center gap-3 rounded-[16px] border-[1.5px] px-4 py-3 text-left transition-colors ${
               isSelected
