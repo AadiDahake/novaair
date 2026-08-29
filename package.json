@@ -33,7 +33,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.e2e.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
