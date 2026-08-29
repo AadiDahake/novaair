@@ -7,10 +7,12 @@
   --color-blue-dark: #0851cc;
   --color-blue-tint: #eaf1ff;
   --color-orange: #f5a623;
+  /* The orange above is the seat outline. Text and icons use this darker amber. */
+  --color-amber-ink: #8a5a00;
   --color-orange-tint: #fff7e9;
   --color-seat-booked: #c9ccd6;
   --color-nose: #eef2ff;
-  --color-ink-muted: #6b6e85;
+  --color-ink-muted: #63667c;
   --color-line: #e8e9f2;
   --color-green: #12a15c;
   --color-page-from: #dbe9ff;

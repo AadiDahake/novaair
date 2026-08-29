@@ -46,7 +46,7 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
               <h2 id="itinerary-heading" className="text-lg font-bold text-navy">
                 Your itinerary
               </h2>
-              <span className="rounded-full bg-blue-tint px-3.5 py-1.5 text-xs font-semibold text-blue">
+              <span className="rounded-full bg-blue-tint px-3.5 py-1.5 text-xs font-semibold text-blue-dark">
                 {reservation.fareBrand}
               </span>
             </div>
@@ -113,7 +113,7 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
             <ul className="mt-4 space-y-4">
               {passengers.map((passenger) => (
                 <li key={passenger.id} className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-tint text-sm font-bold text-blue">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-tint text-sm font-bold text-blue-dark">
                     {passenger.firstName.slice(0, 1)}
                     {passenger.lastName.slice(0, 1)}
                   </span>
