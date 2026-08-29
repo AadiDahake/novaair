@@ -35,8 +35,16 @@ const BASE_BOOKED_PROBABILITY = 0.67
 /** The one block of three free seats the customer is meant to find. */
 const FREE_BLOCK_ROW = 21
 
-/** Rows that look like three seats together only if you ignore the aisle. */
-const AISLE_TRAP_ROWS = [9, 22] as const
+/**
+ * Rows that look like three seats together only if you ignore the aisle.
+ * Each pattern is A B C D E F, where `o` is free and `x` is taken. C and D are free in both, so a
+ * search that treats the row as six seats in a line reads three together. They are not together:
+ * the aisle sits between C and D.
+ */
+const AISLE_TRAP_ROWS: ReadonlyArray<readonly [row: number, pattern: string]> = [
+  [9, 'xxooox'],
+  [22, 'xoooxx'],
+]
 
 /** Seats the demo reservation starts on. They must be free for the seed to assign them. */
 export const DEMO_START_SEATS = ['12A', '18C', '24F'] as const
@@ -49,19 +57,7 @@ const FORCED_SEATS: ReadonlyArray<readonly [string, SeatBaseState]> = [
   ['21C', 'available'],
   // ... and the other side of row 21 must not also be a block of three.
   ['21E', 'booked'],
-  // Rule 2: aisle traps. C and D free across the aisle, plus one more seat.
-  ['9A', 'booked'],
-  ['9B', 'booked'],
-  ['9C', 'available'],
-  ['9D', 'available'],
-  ['9E', 'available'],
-  ['9F', 'booked'],
-  ['22A', 'booked'],
-  ['22B', 'available'],
-  ['22C', 'available'],
-  ['22D', 'available'],
-  ['22E', 'booked'],
-  ['22F', 'booked'],
+  // Rule 2: the aisle traps come from AISLE_TRAP_ROWS, below.
   // Rule 3: blocks of three that cost extra.
   ['2A', 'available'],
   ['2B', 'available'],
@@ -109,6 +105,11 @@ export function createSeatDefinitions(seed: number = SEAT_MAP_SEED): SeatDefinit
   }
 
   for (const [id, state] of FORCED_SEATS) states.set(id, state)
+  for (const [row, pattern] of AISLE_TRAP_ROWS) {
+    COLUMNS.forEach((column, index) => {
+      states.set(seatId(row, column), pattern[index] === 'o' ? 'available' : 'booked')
+    })
+  }
   for (const id of BLOCKED_SEATS) states.set(id, 'blocked')
 
   // Rule 1 is a uniqueness claim, so it needs a sweep. In any row that costs nothing, a side of the
@@ -142,6 +143,3 @@ export function createSeatDefinitions(seed: number = SEAT_MAP_SEED): SeatDefinit
   }
   return definitions
 }
-
-export const AISLE_TRAP_ROW_NUMBERS: readonly number[] = AISLE_TRAP_ROWS
-export const FREE_BLOCK_ROW_NUMBER: number = FREE_BLOCK_ROW
