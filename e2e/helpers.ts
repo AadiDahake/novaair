@@ -82,8 +82,7 @@ export async function confirmSeats(page: Page): Promise<void> {
 
 /** The seat shown against each passenger on the seat page. */
 export async function seatsOnSeatPage(page: Page): Promise<string[]> {
-  const labels = await page.locator('[data-passenger-index]').evaluateAll((nodes) =>
-    nodes.map((node) => node.getAttribute('aria-label') ?? ''),
+  return page.locator('[data-passenger-index]').evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('data-seat-id') ?? ''),
   )
-  return labels.map((label) => label.split('seat ')[1]?.trim() ?? '')
 }
