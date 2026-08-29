@@ -3,7 +3,6 @@ import { Poppins } from 'next/font/google'
 import { PatchletWidget } from '../components/PatchletWidget'
 import { Footer } from '../components/layout/Footer'
 import { TopNav } from '../components/layout/TopNav'
-import { AnalyticsProvider } from '../lib/analytics/provider'
 import './globals.css'
 
 const poppins = Poppins({
@@ -32,21 +31,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={poppins.variable}>
       <body>
-        <AnalyticsProvider>
-          <a
-            href="#main"
-            className="pill pill-dark sr-only px-5 py-2.5 focus:not-sr-only focus:absolute focus:left-6 focus:top-6 focus:z-50"
-          >
-            Skip to main content
-          </a>
-          <div className="mx-auto max-w-[1440px] px-6 py-6 xl:px-10 xl:py-8">
-            <div className="app-shell px-6 py-6 sm:px-8 sm:py-7 xl:px-10 xl:py-8">
-              <TopNav />
-              <main id="main">{children}</main>
-              <Footer />
-            </div>
+        <a
+          href="#main"
+          className="pill pill-dark sr-only px-5 py-2.5 focus:not-sr-only focus:absolute focus:left-6 focus:top-6 focus:z-50"
+        >
+          Skip to main content
+        </a>
+        <div className="mx-auto max-w-[1440px] px-6 py-6 xl:px-10 xl:py-8">
+          <div className="app-shell px-6 py-6 sm:px-8 sm:py-7 xl:px-10 xl:py-8">
+            <TopNav />
+            <main id="main">{children}</main>
+            <Footer />
           </div>
-        </AnalyticsProvider>
+        </div>
         <PatchletWidget />
       </body>
     </html>
