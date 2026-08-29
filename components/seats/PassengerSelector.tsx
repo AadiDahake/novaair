@@ -33,11 +33,9 @@ export function PassengerSelector({
             type="button"
             role="radio"
             aria-checked={isSelected}
-            aria-label={`${passenger.firstName} ${passenger.lastName}, ${
-              passenger.type === 'adult' ? 'adult' : `child age ${passenger.age}`
-            }, seat ${seat ?? 'not chosen'}`}
             data-passenger-index={index}
             data-passenger-id={passenger.id}
+            data-seat-id={seat ?? ''}
             onClick={() => onSelect(index)}
             className={`flex w-full items-center gap-3 rounded-[16px] border-[1.5px] px-4 py-3 text-left transition-colors ${
               isSelected
@@ -48,7 +46,7 @@ export function PassengerSelector({
             <span
               aria-hidden="true"
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                isSelected ? 'bg-blue text-white' : 'bg-blue-tint text-blue'
+                isSelected ? 'bg-blue text-white' : 'bg-blue-tint text-blue-dark'
               }`}
             >
               {passenger.firstName.slice(0, 1)}
@@ -64,12 +62,12 @@ export function PassengerSelector({
             </span>
             <span className="text-right">
               <span
-                className={`block text-base font-extrabold ${changed ? 'text-blue' : 'text-navy'}`}
+                className={`block text-base font-extrabold ${changed ? 'text-blue-dark' : 'text-navy'}`}
               >
                 {seat ?? '--'}
               </span>
               {changed ? (
-                <span className="block text-[0.65rem] font-semibold text-blue">changed</span>
+                <span className="block text-[0.65rem] font-semibold text-blue-dark">changed</span>
               ) : null}
             </span>
           </button>
