@@ -1,0 +1,44 @@
+{
+  "name": "novaair",
+  "version": "1.0.0",
+  "description": "NovaAir: fictional consumer airline site, the demo host for Patchlet (Codex hackathon)",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
+    "next": "^15.5.24",
+    "posthog-js": "^1.422.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "autoprefixer": "^10.5.4",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.24",
+    "pg": "^8.23.0",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.e2e.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "db:seed": "node scripts/seed.mjs",
+    "db:reset-demo": "node scripts/reset-demo.mjs"
+  }
+}
