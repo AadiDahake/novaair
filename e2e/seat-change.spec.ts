@@ -29,7 +29,7 @@ test('a customer moves a party of three to 21A, 21B and 21C by hand, and the sea
   await openSeatsSection(page)
   await openSeatMap(page)
 
-  // One passenger at a time. There is no other way to do this on NovaAir.
+  // Customers can still move each passenger individually.
   await movePassengerToSeat(page, 0, '21A')
   await movePassengerToSeat(page, 1, '21B')
   await movePassengerToSeat(page, 2, '21C')
@@ -44,6 +44,39 @@ test('a customer moves a party of three to 21A, 21B and 21C by hand, and the sea
   expect(await seatsOnSeatPage(page)).toEqual([...DEMO.targetSeats])
 
   // The trip page agrees.
+  await page.goto(`/trips/${DEMO.code}`)
+  await expect(page.getByRole('heading', { name: 'Manage Trip', level: 1 })).toBeVisible()
+  for (const seat of DEMO.targetSeats) {
+    await expect(page.getByText(seat, { exact: true }).first()).toBeVisible()
+  }
+})
+
+test('a parent selects and persists adjacent seats for the family', async ({ page }) => {
+  await findReservation(page)
+  await openSeatsSection(page)
+  await openSeatMap(page)
+
+  await selectPassenger(page, 0)
+  await page.getByTestId('find-seats-together').click()
+
+  const firstOption = page.getByTestId('family-seat-option-0')
+  await expect(firstOption).toBeVisible()
+  await expect(page.getByText(DEMO.targetSeats.join(', '), { exact: true })).toBeVisible()
+
+  await firstOption.click()
+  await page.getByTestId('family-seat-apply').click()
+
+  await expect(page.getByTestId('family-seat-notice')).toContainText(
+    `Your family is seated together in ${DEMO.targetSeats.join(', ')}.`,
+  )
+  expect(await seatsOnSeatPage(page)).toEqual([...DEMO.targetSeats])
+
+  await page.reload()
+  for (const seat of DEMO.targetSeats) {
+    await expect(page.locator(`[data-seat="${seat}"]`)).toHaveAttribute('data-state', 'occupied')
+  }
+  expect(await seatsOnSeatPage(page)).toEqual([...DEMO.targetSeats])
+
   await page.goto(`/trips/${DEMO.code}`)
   await expect(page.getByRole('heading', { name: 'Manage Trip', level: 1 })).toBeVisible()
   for (const seat of DEMO.targetSeats) {
@@ -81,7 +114,6 @@ test('the path Manage Trip, Seats, Change seats exists with those exact names', 
   await expect(page.getByRole('tab', { name: 'Seats' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Change seats' })).toBeVisible()
 })
-
 
 test('every seat carries an accessible name that says its state', async ({ page }) => {
   await findReservation(page)

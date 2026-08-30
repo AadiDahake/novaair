@@ -14,15 +14,16 @@ export interface HelpArticle {
 /**
  * The NovaAir help center.
  *
- * These articles describe only what the site can actually do. NovaAir changes one seat for one
- * passenger at a time, so no article promises to move a group of passengers in one step.
+ * These articles describe only what the site can actually do. NovaAir can find adjacent seats for
+ * an adult and all children in a booking, or customers can change individual seats manually.
  */
 export const HELP_ARTICLES: HelpArticle[] = [
   {
     slug: 'how-do-i-change-my-seat',
     title: 'How do I change my seat?',
     category: 'Seats',
-    summary: 'Open your trip, go to Seats, and pick a new seat for each passenger.',
+    summary:
+      'Open your trip, go to Seats, and find seats together for your family or pick individual seats.',
     sections: [
       {
         heading: 'Change a seat online',
@@ -30,9 +31,10 @@ export const HELP_ARTICLES: HelpArticle[] = [
           'Select My Booking in the top menu.',
           'Enter your confirmation code and the last name on the booking. Then select Find my booking.',
           'On the Manage Trip page, go to the Seats section and select Change seats.',
-          'The seat map opens. Select a passenger in the list on the right, then select a free seat on the map. The seat map moves that one passenger.',
-          'Repeat for each passenger you want to move. NovaAir changes seats one passenger at a time.',
-          'Select Confirm seats to save. Your new seats appear on the Manage Trip page.',
+          'To seat a family together, select an adult in the passenger list and then select Find seats together. NovaAir searches for adjacent seats for that adult and all children in the booking.',
+          'Review the available family seat options, which are shown with the lowest extra cost first. Choose an option and select Change seats so we sit together to move the family in one action.',
+          'To change one passenger manually, select that passenger in the list and then select a free seat on the map. Repeat for any other passengers you want to move.',
+          'For manual changes, select Confirm seats to save. Your new seats appear on the Manage Trip page.',
         ],
       },
       {
@@ -49,6 +51,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         body: [
           'Seat changes close 60 minutes before departure.',
           'A seat that another customer has taken cannot be selected. The seat map tells you when this happens.',
+          'If no adjacent block is available, NovaAir does not change any family seats. You can try individual seats or check again later.',
           'Exit row seats are for adults only. See Traveling with children.',
         ],
       },
@@ -88,21 +91,30 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: 'traveling-with-children',
     title: 'Traveling with children',
     category: 'Seats',
-    summary: 'A child under 13 must sit next to an adult on the same booking.',
+    summary: 'Find adjacent seats for an adult and all children in the booking.',
     sections: [
       {
         heading: 'Seating rule',
         body: [
           'A child under 13 years of age must sit next to an adult on the same booking.',
-          'Check the seat map before you travel. If your party is not seated together, move each passenger yourself.',
+          'Check the seat map before you travel. If your family is not seated together, NovaAir can search for adjacent seats for one adult and all children in the booking.',
         ],
       },
       {
-        heading: 'How to move your party',
+        heading: 'Find seats together',
         body: [
-          'NovaAir changes seats one passenger at a time.',
           'Open Manage Trip, go to Seats, and select Change seats.',
-          'Select the first passenger, then select a free seat. Select the next passenger, then select the next free seat. Repeat for every passenger.',
+          'Select the adult who will sit with the children, then select Find seats together.',
+          'NovaAir shows available blocks with one seat for the selected adult and one seat for every child in the booking. Every block is in one row, uses consecutive seats on one side of the aisle, and follows the child seating rules.',
+          'Family seat options are ordered by lowest total extra cost. Review the seats and price, choose an option, and select Change seats so we sit together.',
+          'NovaAir moves everyone in the family option in one action. If the change cannot be completed, nobody in the family is moved and everyone keeps their previous seat.',
+        ],
+      },
+      {
+        heading: 'Change individual seats instead',
+        body: [
+          'You can still change seats one passenger at a time.',
+          'Select a passenger, then select a free seat on the map. Repeat for every passenger you want to move.',
           'Read the seat map carefully. Two free seats either side of the aisle are not seats together. Seats A, B and C are one block. Seats D, E and F are the other block. The aisle is between C and D.',
           'Select Confirm seats when every passenger has the seat you want.',
         ],
@@ -111,13 +123,13 @@ export const HELP_ARTICLES: HelpArticle[] = [
         heading: 'Exit rows',
         body: [
           'Rows 15 and 16 are exit rows. A passenger in an exit row must be an adult.',
-          'A child cannot sit in an exit row. The seat map refuses the seat and tells you why.',
+          'A child cannot sit in an exit row. Family seat options never include an exit row, and the seat map refuses an individual exit row seat for a child.',
         ],
       },
       {
         heading: 'If your party is not seated together',
         body: [
-          'Call NovaAir on 1-800-555-0142 and an agent will look at the seat map with you.',
+          'If no valid family seat option is available, no seats are changed. You can choose individual seats, try again later, or call NovaAir on 1-800-555-0142 and an agent will look at the seat map with you.',
           'You can also ask at the gate on the day of travel. Seats together are not guaranteed.',
         ],
       },

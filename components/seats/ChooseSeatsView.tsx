@@ -20,9 +20,48 @@ import { YourFlightCard } from './YourFlightCard'
 
 type Staged = Record<string, string | null>
 
+interface FamilySeatAssignment {
+  passengerId: string
+  seatId: string
+}
+
+interface FamilySeatOption {
+  row: number
+  seatIds: string[]
+  seats: string[]
+  assignments: FamilySeatAssignment[]
+  priceCents: number
+  totalPriceCents: number
+}
+
+interface FamilySearchResponse {
+  options: FamilySeatOption[]
+}
+
+interface FamilyApplyResponse {
+  ok: true
+  seatIds: string[]
+  seats: string[]
+  assignments: FamilySeatAssignment[]
+  priceCents: number
+  totalPriceCents: number
+}
+
+interface ErrorResponse {
+  message?: string
+}
+
 interface Props {
   reservation: Reservation
   seatMap: SeatMap
+}
+
+function familySeatPrice(priceCents: number): string {
+  if (priceCents === 0) return 'No extra cost'
+  return `${new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(priceCents / 100)} total`
 }
 
 export function ChooseSeatsView({ reservation, seatMap }: Props) {
@@ -35,6 +74,14 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [familyOptions, setFamilyOptions] = useState<FamilySeatOption[]>([])
+  const [selectedFamilyOption, setSelectedFamilyOption] = useState<number | null>(null)
+  const [findingFamilySeats, setFindingFamilySeats] = useState(false)
+  const [applyingFamilySeats, setApplyingFamilySeats] = useState(false)
+  const [familyFeedback, setFamilyFeedback] = useState<{
+    kind: 'error' | 'success' | 'info'
+    text: string
+  } | null>(null)
 
   const interactions = useRef(0)
   const openedAt = useRef(Date.now())
@@ -45,6 +92,16 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
   const passengerById = useMemo(
     () => new Map(passengers.map((passenger) => [passenger.id, passenger])),
     [passengers],
+  )
+  const selectedPassenger = passengers[selectedIndex] ?? null
+  const selectedAdult = selectedPassenger?.type === 'adult' ? selectedPassenger : null
+  const children = useMemo(
+    () => passengers.filter((passenger) => passenger.type === 'child'),
+    [passengers],
+  )
+  const familyPassengers = useMemo(
+    () => (selectedAdult ? [selectedAdult, ...children] : []),
+    [children, selectedAdult],
   )
 
   useEffect(() => {
@@ -57,6 +114,12 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     // The event describes the map as it was opened, so it is sent once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    setFamilyOptions([])
+    setSelectedFamilyOption(null)
+    setFamilyFeedback(null)
+  }, [selectedAdult?.id])
 
   /** Who holds each seat right now, taking the staged choices into account. */
   const ownerBySeat = useMemo(() => {
@@ -201,6 +264,136 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     })
   }
 
+  async function findFamilySeats() {
+    if (!selectedAdult || children.length === 0) {
+      setFamilyFeedback({
+        kind: 'error',
+        text:
+          children.length === 0
+            ? 'There are no children on this booking.'
+            : 'Select an adult before finding seats together.',
+      })
+      return
+    }
+
+    interactions.current += 1
+    setFindingFamilySeats(true)
+    setFamilyOptions([])
+    setSelectedFamilyOption(null)
+    setFamilyFeedback(null)
+
+    const searchParams = new URLSearchParams()
+    for (const passenger of familyPassengers) {
+      searchParams.append('passengerId', passenger.id)
+    }
+
+    try {
+      const response = await fetch(
+        `/api/seats/${encodeURIComponent(flight.id)}/party?${searchParams.toString()}`,
+      )
+      const payload = (await response.json().catch(() => ({}))) as
+        | FamilySearchResponse
+        | ErrorResponse
+
+      if (!response.ok) {
+        setFamilyFeedback({
+          kind: 'error',
+          text:
+            'message' in payload && payload.message
+              ? payload.message
+              : 'We could not find family seats. Please try again.',
+        })
+        return
+      }
+
+      const options = 'options' in payload && Array.isArray(payload.options) ? payload.options : []
+      setFamilyOptions(options)
+
+      if (options.length === 0) {
+        setFamilyFeedback({
+          kind: 'info',
+          text:
+            'Your family cannot currently be seated together. No seats were changed. You can still choose individual seats on the map.',
+        })
+        return
+      }
+
+      setSelectedFamilyOption(0)
+      setFamilyFeedback({
+        kind: 'info',
+        text: `${options.length} family seat ${options.length === 1 ? 'option is' : 'options are'} available, cheapest first.`,
+      })
+    } catch {
+      setFamilyFeedback({
+        kind: 'error',
+        text: 'We could not find family seats. Please try again.',
+      })
+    } finally {
+      setFindingFamilySeats(false)
+    }
+  }
+
+  async function applyFamilySeats() {
+    if (selectedFamilyOption === null) return
+    const option = familyOptions[selectedFamilyOption]
+    if (!option) return
+
+    interactions.current += 1
+    setApplyingFamilySeats(true)
+    setFamilyFeedback(null)
+    setNotice(null)
+
+    try {
+      const response = await fetch(`/api/seats/${encodeURIComponent(flight.id)}/party`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ assignments: option.assignments }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as
+        | FamilyApplyResponse
+        | ErrorResponse
+
+      if (!response.ok || !('ok' in payload) || !payload.ok) {
+        const text =
+          'message' in payload && payload.message
+            ? payload.message
+            : 'We could not change your family seats. No seats were changed.'
+        setFamilyFeedback({ kind: 'error', text })
+        setNotice({ kind: 'error', text })
+        return
+      }
+
+      setStaged((current) => {
+        const next = { ...current }
+        for (const assignment of payload.assignments) {
+          next[assignment.passengerId] = assignment.seatId
+        }
+        return next
+      })
+
+      capture('seat_assignment_confirmed', {
+        seats: payload.seatIds,
+        party_size: payload.assignments.length,
+        same_row: seatsAreSameRow(payload.seatIds),
+        contiguous: seatsAreContiguous(payload.seatIds),
+        additional_cost: payload.totalPriceCents,
+        interactions: interactions.current,
+        elapsed_ms: Date.now() - openedAt.current,
+      })
+
+      const text = `Your family is seated together in ${payload.seatIds.join(', ')}.`
+      setFamilyFeedback({ kind: 'success', text })
+      setNotice({ kind: 'success', text })
+      router.refresh()
+    } catch {
+      const text = 'Something went wrong. No family seats were changed. Please try again.'
+      setFamilyFeedback({ kind: 'error', text })
+      setNotice({ kind: 'error', text })
+    } finally {
+      setApplyingFamilySeats(false)
+    }
+  }
+
   /**
    * Write the staged choices, one passenger at a time.
    *
@@ -327,7 +520,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
             {seatMap.cabinName}
           </h2>
           <p className="mt-1 text-[0.8rem] text-ink-muted">
-            Select a passenger, then select a seat. One passenger moves at a time.
+            Select a passenger and a seat, or use Find seats together for your family.
           </p>
           <div className="mt-4">
             <SeatLegend />
@@ -449,6 +642,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
             type="button"
             onClick={confirm}
             disabled={!hasChanges || confirming}
+            aria-label="Confirm seats"
+            data-testid="confirm-seats"
             className="pill pill-primary mt-3 w-full px-7 py-4 text-[1rem]"
           >
             {confirming ? 'Saving...' : 'Confirm seats'}
@@ -472,6 +667,113 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
               onSelect={onPassengerSelect}
             />
           </div>
+        </section>
+
+        <section aria-labelledby="family-seats-heading" className="card p-6">
+          <h2 id="family-seats-heading" className="text-lg font-bold text-ink">
+            Sit with all the children
+          </h2>
+          <p className="mt-1.5 text-[0.8rem] leading-relaxed text-ink-muted">
+            Select an adult above, then find adjacent seats for that adult and all children in this
+            booking.
+          </p>
+
+          <button
+            type="button"
+            onClick={findFamilySeats}
+            disabled={!selectedAdult || children.length === 0 || findingFamilySeats || applyingFamilySeats}
+            aria-label="Find seats together"
+            data-testid="find-seats-together"
+            className="pill pill-outline mt-5 w-full px-5 py-3 text-[0.88rem]"
+          >
+            {findingFamilySeats ? 'Finding seats...' : 'Find seats together'}
+          </button>
+
+          {familyOptions.length > 0 ? (
+            <fieldset className="mt-5">
+              <legend className="text-sm font-bold text-ink">Choose a family seat option</legend>
+              <div className="mt-3 max-h-[300px] space-y-2 overflow-y-auto pr-1">
+                {familyOptions.map((option, index) => {
+                  const passengerNames = option.assignments
+                    .map((assignment) => passengerById.get(assignment.passengerId)?.firstName)
+                    .filter((name): name is string => Boolean(name))
+                  const accessibleName = `Select family seats ${option.seatIds.join(', ')} for ${passengerNames.join(', ')}`
+
+                  return (
+                    <label
+                      key={`${option.row}-${option.seatIds.join('-')}`}
+                      className={`block cursor-pointer rounded-[14px] border p-3 ${
+                        selectedFamilyOption === index
+                          ? 'border-line-strong bg-blue-tint'
+                          : 'border-line bg-surface'
+                      }`}
+                    >
+                      <span className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="family-seat-option"
+                          checked={selectedFamilyOption === index}
+                          onChange={() => {
+                            interactions.current += 1
+                            setSelectedFamilyOption(index)
+                            setFamilyFeedback(null)
+                          }}
+                          aria-label={accessibleName}
+                          data-testid={`family-seat-option-${index}`}
+                          className="mt-1 accent-amber-ink"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-bold text-ink">
+                            {option.seatIds.join(', ')}
+                          </span>
+                          <span className="mt-1 block text-[0.76rem] leading-relaxed text-ink-muted">
+                            Row {option.row} · {familySeatPrice(option.totalPriceCents)}
+                          </span>
+                          <span className="mt-1 block text-[0.76rem] leading-relaxed text-ink-soft">
+                            {option.assignments
+                              .map((assignment) => {
+                                const passenger = passengerById.get(assignment.passengerId)
+                                return `${passenger?.firstName ?? 'Passenger'}: ${assignment.seatId}`
+                              })
+                              .join(' · ')}
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+          ) : null}
+
+          <div aria-live="polite">
+            {familyFeedback ? (
+              <p
+                role={familyFeedback.kind === 'error' ? 'alert' : undefined}
+                data-testid="family-seat-notice"
+                className={`mt-4 rounded-[14px] px-4 py-3 text-[0.8rem] font-medium leading-relaxed ${
+                  familyFeedback.kind === 'error'
+                    ? 'bg-orange-tint text-ink'
+                    : 'bg-blue-tint text-ink'
+                }`}
+              >
+                {familyFeedback.text}
+              </p>
+            ) : null}
+          </div>
+
+          {familyOptions.length > 0 ? (
+            <button
+              type="button"
+              onClick={applyFamilySeats}
+              disabled={selectedFamilyOption === null || applyingFamilySeats || findingFamilySeats}
+              aria-label="Change seats so we sit together"
+              data-testid="family-seat-apply"
+              className="pill pill-primary mt-4 w-full px-5 py-3 text-[0.88rem]"
+            >
+              {applyingFamilySeats ? 'Changing family seats...' : 'Change seats so we sit together'}
+            </button>
+          ) : null}
         </section>
 
         <section aria-labelledby="seat-rules-heading" className="rounded-[20px] bg-blue-tint p-6">

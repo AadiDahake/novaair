@@ -4,24 +4,22 @@ NovaAir is a fictional consumer airline website. It is the host product for the 
 `README.md` covers running and checking it. This file covers what an agent needs before it changes
 anything.
 
-## The starting state
+## The seat-party capability
 
-NovaAir has the seat primitives but not their composition. No function, route, help article or
-control finds seats together, ranks blocks of seats, or moves more than one passenger in one
-action, so a customer moves each passenger by hand. That gap is the demo's starting point: it is
-the thing the product being demonstrated is asked to close.
+NovaAir composes its seat primitives into a deliberate seat-party capability. The seat map can find
+ranked blocks of adjacent seats for an adult and all children in the booking, then move the whole
+family in one atomic action. Customers can still move each passenger by hand.
 
-It is a starting state, not a prohibition. An approved change may add a seat-party capability, and
-the next section says how. What the repository does guard against is drifting into one by
-accident: each primitive stays single-purpose, and a capability that composes them is a deliberate
-addition with its own tests and docs.
+The composition remains separate from the single-purpose primitives and has its own route, control,
+tests and documentation. Changes to it must preserve the invariants in the next section rather than
+reaching past the primitives into the store.
 
-## Adding seat-party capabilities
+## Maintaining seat-party capabilities
 
-An approved change - a filed request, an accepted pull request - may add a capability that finds a
-block of seats for a travel party and moves the party in one action. It composes the existing
-primitives rather than reaching past them into the store: `getSeatMap`, `getAvailableSeats`,
-`getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat` and `getReservation`.
+The seat-party capability finds a block of seats for a travel party and moves the party in one
+action. It composes the existing primitives rather than reaching past them into the store:
+`getSeatMap`, `getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`
+and `getReservation`.
 
 Where the pieces belong:
 
@@ -46,40 +44,44 @@ What it must keep true, whatever else it does:
 - **One atomic apply.** The whole party lands or none of it does. A failed apply leaves every
   passenger on the seat they already had.
 
-`tests/seat-party.test.ts` is the contract on all of that. It skips cleanly while no such
-capability exists, and enforces every point above the moment `lib/seats/index.ts` exports
-`findSeatsForParty` or `assignSeatsForParty`. Use those two names: they are what the test looks
-for, and an export under another name is a capability the test cannot guard. The same test still
-asserts that the seven primitives are all exported and that nothing else appears beside them.
+`tests/seat-party.test.ts` is the contract on all of that. It enforces every point above through
+the `findSeatsForParty` and `assignSeatsForParty` exports. Keep those names: they are what the test
+looks for, and an export under another name is a capability the test cannot guard. The same test
+also asserts that the seven primitives remain exported and that nothing else appears beside the
+seven primitives and these two compositions.
 
-A change that ships this also updates `docs/api.md`, and the help center in `lib/help/articles.ts`
-where its copy no longer describes the product.
+Changes to this capability also update `docs/api.md`, and the help center in
+`lib/help/articles.ts` when customer-facing behavior or instructions change.
 
 ## Layout
 
 | Path | What lives there |
 | --- | --- |
-| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, and the primitives in `index.ts`. |
+| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, primitives and seat-party compositions. |
 | `lib/repo/` | Storage. `types.ts` is the contract; `memory.ts` and `supabase.ts` implement it; `index.ts` picks one. |
 | `lib/analytics/` | The event contract and `capture`. PostHog itself starts in `instrumentation-client.ts`. |
 | `lib/help/articles.ts` | Every help article, as data. |
-| `app/api/` | Route handlers. Each one is a thin shell over one primitive. |
+| `app/api/` | Route handlers. Each one is a thin HTTP shell over a domain operation. |
 | `app/` | Pages. `trips/[code]` is Manage Trip; `trips/[code]/seats` is the seat map. |
 | `components/seats/` | The seat map UI. `ChooseSeatsView.tsx` owns the interaction and the events. |
 | `scripts/` | Migrate, seed and reset, in plain `pg`. Also the PostHog seeders and the verifier. |
 | `supabase/migrations/` | The schema. |
 
-## The primitives contract
+## The seats module contract
 
-`lib/seats/index.ts` exports seven primitives, documented in `docs/api.md`: `getSeatMap`,
-`getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
-`getReservation`, `getReservationByCode`. Today they are the whole of the module.
+`lib/seats/index.ts` exports seven primitives and two seat-party compositions, documented in
+`docs/api.md`: `getSeatMap`, `getAvailableSeats`, `getPassengerRestrictions`,
+`calculateSeatPrice`, `assignSeat`, `getReservation`, `getReservationByCode`,
+`findSeatsForParty` and `assignSeatsForParty`.
 
 - `assignSeat` moves one passenger. It is atomic, because the store rejects a seat another
   passenger holds, and it is idempotent for the same passenger and seat.
-- Adding an export to this module changes the contract. `tests/seat-party.test.ts` fails until the
-  new name is one it knows, which is the moment to think about whether the export belongs and
-  whether it is really a primitive or a composition of them.
+- `findSeatsForParty` searches and ranks valid contiguous blocks by extra cost.
+- `assignSeatsForParty` moves the whole party atomically and leaves all previous assignments
+  unchanged if any move fails.
+- Adding an export to this module changes the contract. `tests/seat-party.test.ts` fails for an
+  unknown name, which is the moment to think about whether the export belongs and whether it is a
+  primitive or a composition.
 
 ## The analytics contract
 
