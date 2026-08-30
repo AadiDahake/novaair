@@ -40,6 +40,9 @@
     "e2e": "playwright test",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:seed": "node --import tsx scripts/seed.mjs",
-    "db:reset-demo": "node --import tsx scripts/reset-demo.mjs"
+    "db:reset-demo": "node --import tsx scripts/reset-demo.mjs",
+    "seed:sessions": "node --import tsx scripts/seed-posthog-sessions.mjs",
+    "seed:outcomes": "node --import tsx scripts/seed-posthog-outcomes.mjs",
+    "seed:verify": "node --import tsx scripts/posthog-verify.mjs"
   }
 }

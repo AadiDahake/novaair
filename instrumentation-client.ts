@@ -25,4 +25,9 @@ if (key) {
     session_recording: { maskAllInputs: false },
     person_profiles: 'always',
   })
+
+  // The install snippet PostHog documents puts the client on `window`. The module import does not,
+  // so it is done here: the PostHog toolbar and the session generator in `scripts/` both reach the
+  // client through `window.posthog` to identify a customer and to read the session id.
+  ;(window as unknown as { posthog: typeof posthog }).posthog = posthog
 }
