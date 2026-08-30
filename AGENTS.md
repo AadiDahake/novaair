@@ -4,17 +4,56 @@ NovaAir is a fictional consumer airline website. It is the host product for the 
 `README.md` covers running and checking it. This file covers what an agent needs before it changes
 anything.
 
-## The rule that shapes this repository
+## The starting state
 
-NovaAir has the seat primitives but not their composition. There is no function, route, help
-article or control that finds seats together, ranks groups of seats, or moves more than one
-passenger in one action. A customer moves each passenger by hand. That absence is the point of the
-product it demonstrates.
+NovaAir has the seat primitives but not their composition. No function, route, help article or
+control finds seats together, ranks blocks of seats, or moves more than one passenger in one
+action, so a customer moves each passenger by hand. That gap is the demo's starting point: it is
+the thing the product being demonstrated is asked to close.
 
-`tests/no-group-seating.test.ts` enforces it. It scans `lib/`, `app/` and `components/` for the
-banned names and asserts the exact export list of `lib/seats/index.ts`. Do not weaken it. If a task
-asks you to add such a feature, that task is changing the premise, so raise it rather than quietly
-adding the code.
+It is a starting state, not a prohibition. An approved change may add a seat-party capability, and
+the next section says how. What the repository does guard against is drifting into one by
+accident: each primitive stays single-purpose, and a capability that composes them is a deliberate
+addition with its own tests and docs.
+
+## Adding seat-party capabilities
+
+An approved change - a filed request, an accepted pull request - may add a capability that finds a
+block of seats for a travel party and moves the party in one action. It composes the existing
+primitives rather than reaching past them into the store: `getSeatMap`, `getAvailableSeats`,
+`getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat` and `getReservation`.
+
+Where the pieces belong:
+
+| Piece | Where |
+| --- | --- |
+| The search and the apply | `lib/seats/`, exported from `lib/seats/index.ts` |
+| The HTTP shell over it | a route under `app/api/seats/[flightId]/` |
+| The control a customer operates | the seat map, in `components/seats/` |
+
+What it must keep true, whatever else it does:
+
+- **Contiguous, same row.** Every block it offers sits in one row, in consecutive columns, on one
+  side of the aisle. A, B and C are one block, D, E and F are the other, and two seats either side
+  of the aisle are not seats together.
+- **Free seats only.** Never a seat that is booked, never the seat held for accessible seating, and
+  never a seat a passenger outside the party holds.
+- **The passenger rules still hold.** No child in an exit row, and a passenger who must sit with an
+  adult is only offered a block that also seats an adult from their own party. Read both from
+  `getPassengerRestrictions` rather than restating them.
+- **Ranked by extra cost.** A block carries the sum of `calculateSeatPrice` over its seats, and the
+  cheapest block comes first.
+- **One atomic apply.** The whole party lands or none of it does. A failed apply leaves every
+  passenger on the seat they already had.
+
+`tests/seat-party.test.ts` is the contract on all of that. It skips cleanly while no such
+capability exists, and enforces every point above the moment `lib/seats/index.ts` exports
+`findSeatsForParty` or `assignSeatsForParty`. Use those two names: they are what the test looks
+for, and an export under another name is a capability the test cannot guard. The same test still
+asserts that the seven primitives are all exported and that nothing else appears beside them.
+
+A change that ships this also updates `docs/api.md`, and the help center in `lib/help/articles.ts`
+where its copy no longer describes the product.
 
 ## Layout
 
@@ -32,15 +71,15 @@ adding the code.
 
 ## The primitives contract
 
-`lib/seats/index.ts` exports exactly seven functions, documented in `docs/api.md`:
-`getSeatMap`, `getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
-`getReservation`, `getReservationByCode`.
+`lib/seats/index.ts` exports seven primitives, documented in `docs/api.md`: `getSeatMap`,
+`getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
+`getReservation`, `getReservationByCode`. Today they are the whole of the module.
 
 - `assignSeat` moves one passenger. It is atomic, because the store rejects a seat another
   passenger holds, and it is idempotent for the same passenger and seat.
-- Adding an export to this module changes the contract. `tests/no-group-seating.test.ts` will fail
-  until the expected list is updated, which is the moment to think about whether the new export
-  belongs.
+- Adding an export to this module changes the contract. `tests/seat-party.test.ts` fails until the
+  new name is one it knows, which is the moment to think about whether the export belongs and
+  whether it is really a primitive or a composition of them.
 
 ## The analytics contract
 
