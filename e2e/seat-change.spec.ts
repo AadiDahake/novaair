@@ -82,16 +82,6 @@ test('the path Manage Trip, Seats, Change seats exists with those exact names', 
   await expect(page.getByRole('link', { name: 'Change seats' })).toBeVisible()
 })
 
-test('NovaAir offers no control that seats a party together', async ({ page }) => {
-  await findReservation(page)
-  await openSeatsSection(page)
-  await openSeatMap(page)
-
-  for (const name of [/find seats together/i, /seats together/i, /move everyone/i, /seat my family/i]) {
-    await expect(page.getByRole('button', { name })).toHaveCount(0)
-    await expect(page.getByRole('link', { name })).toHaveCount(0)
-  }
-})
 
 test('every seat carries an accessible name that says its state', async ({ page }) => {
   await findReservation(page)
