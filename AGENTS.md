@@ -95,6 +95,22 @@ click on it has to explain why, and that refusal is an analytics signal.
 - Any secret. Read them from the environment, list them in `.env.example` by name only, and keep
   `SUPABASE_SERVICE_ROLE_KEY` on the server.
 - Screen text that a test reads. Prefer a `data-testid` or an `aria-label`.
+- A colour. Every colour is a token in the `@theme` block of `app/globals.css`. Nothing in `app/`
+  or `components/` holds a palette colour of its own, apart from the drawn illustrations.
+
+## The theme
+
+NovaAir is dark, and dark is the only theme. There is no toggle and no light fallback.
+
+- Token names say their job, not their hue: `ink` is text and is near-white, `surface` is a card,
+  `line` is a decorative hairline and `line-strong` is the edge of a control a customer operates.
+  Read the comments in the `@theme` block before you add one.
+- `tests/contrast.test.ts` parses that block and measures every pair the design puts on screen. It
+  fails with the pair named, so a token change tells you what it broke. Add the pair to that test
+  when you add a colour, rather than checking a ratio by hand.
+- A receding seat is close to the panel behind it on purpose. Its state is never carried by the pad
+  colour alone: the seat prints its own id, an available seat is ringed in amber, and the state is
+  in `data-state` and in the `aria-label`. The test holds that reasoning.
 
 ## Sharp edges
 
