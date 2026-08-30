@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   DEMO,
-  confirmSeats,
   findReservation,
-  movePassengerToSeat,
   openSeatMap,
   openSeatsSection,
   resetDemo,
@@ -16,7 +14,7 @@ test.beforeEach(async ({ page }) => {
   await resetDemo(page)
 })
 
-test('a customer moves a party of three to 21A, 21B and 21C by hand, and the seats stay', async ({
+test('a customer automatically changes a party of three to 21A, 21B and 21C, and the seats stay', async ({
   page,
 }) => {
   await findReservation(page)
@@ -29,18 +27,27 @@ test('a customer moves a party of three to 21A, 21B and 21C by hand, and the sea
   await openSeatsSection(page)
   await openSeatMap(page)
 
-  // One passenger at a time. There is no other way to do this on NovaAir.
-  await movePassengerToSeat(page, 0, '21A')
-  await movePassengerToSeat(page, 1, '21B')
-  await movePassengerToSeat(page, 2, '21C')
+  const automaticChange = page.getByTestId('automatically-change-seat-assignments')
+  await expect(automaticChange).toHaveAccessibleName('Automatically change seat assignments')
 
+  const assignmentResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      /\/api\/seats\/[^/]+\/party$/.test(new URL(response.url()).pathname),
+  )
+  await automaticChange.click()
+  expect((await assignmentResponse).ok()).toBe(true)
+
+  await expect(page.getByTestId('seat-notice')).toContainText(
+    'automatically changed and saved: 21A, 21B, 21C',
+  )
   expect(await seatsOnSeatPage(page)).toEqual([...DEMO.targetSeats])
-
-  await confirmSeats(page)
 
   // Reload, and the seats are still there.
   await page.reload()
-  await expect(page.locator('[data-seat="21A"]')).toHaveAttribute('data-state', 'occupied')
+  for (const seat of DEMO.targetSeats) {
+    await expect(page.locator(`[data-seat="${seat}"]`)).toHaveAttribute('data-state', 'occupied')
+  }
   expect(await seatsOnSeatPage(page)).toEqual([...DEMO.targetSeats])
 
   // The trip page agrees.
@@ -81,7 +88,6 @@ test('the path Manage Trip, Seats, Change seats exists with those exact names', 
   await expect(page.getByRole('tab', { name: 'Seats' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Change seats' })).toBeVisible()
 })
-
 
 test('every seat carries an accessible name that says its state', async ({ page }) => {
   await findReservation(page)

@@ -25,6 +25,43 @@ interface Props {
   seatMap: SeatMap
 }
 
+interface SeatPartyOption {
+  seatIds: string[]
+  totalPriceCents: number
+}
+
+interface SeatPartyOptionsResponse {
+  options?: unknown
+}
+
+interface SeatPartyErrorResponse {
+  message?: string
+}
+
+function readSeatPartyOptions(payload: SeatPartyOptionsResponse): SeatPartyOption[] {
+  if (!Array.isArray(payload.options)) return []
+
+  return payload.options.flatMap((option) => {
+    if (!option || typeof option !== 'object') return []
+
+    const candidate = option as { seatIds?: unknown; totalPriceCents?: unknown }
+    if (
+      !Array.isArray(candidate.seatIds) ||
+      candidate.seatIds.some((seatId) => typeof seatId !== 'string') ||
+      typeof candidate.totalPriceCents !== 'number'
+    ) {
+      return []
+    }
+
+    return [
+      {
+        seatIds: candidate.seatIds as string[],
+        totalPriceCents: candidate.totalPriceCents,
+      },
+    ]
+  })
+}
+
 export function ChooseSeatsView({ reservation, seatMap }: Props) {
   const router = useRouter()
   const { passengers, flight } = reservation
@@ -35,6 +72,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [automating, setAutomating] = useState(false)
 
   const interactions = useRef(0)
   const openedAt = useRef(Date.now())
@@ -201,6 +239,104 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     })
   }
 
+  async function automaticallyChangeSeats() {
+    if (automating || confirming) return
+
+    interactions.current += 1
+    setAutomating(true)
+    setNotice({
+      kind: 'success',
+      text: 'Finding the lowest-cost seats that keep your travelers together...',
+    })
+
+    try {
+      const query = new URLSearchParams({ reservationCode: reservation.code })
+      const optionsResponse = await fetch(
+        `/api/seats/${encodeURIComponent(flight.id)}/party?${query.toString()}`,
+      )
+
+      if (!optionsResponse.ok) {
+        const payload = (await optionsResponse.json().catch(() => ({}))) as SeatPartyErrorResponse
+        setNotice({
+          kind: 'error',
+          text: payload.message ?? 'We could not look for seats together. Please try again.',
+        })
+        return
+      }
+
+      const payload = (await optionsResponse.json()) as SeatPartyOptionsResponse
+      const option = readSeatPartyOptions(payload).find(
+        (candidate) => candidate.seatIds.length === passengers.length,
+      )
+
+      if (!option) {
+        setNotice({
+          kind: 'error',
+          text: 'We could not find enough consecutive seats together. You can still choose seats individually.',
+        })
+        return
+      }
+
+      setNotice({
+        kind: 'success',
+        text: `Seats ${option.seatIds.join(', ')} are available. Saving them for your travelers...`,
+      })
+
+      const assignmentResponse = await fetch(
+        `/api/seats/${encodeURIComponent(flight.id)}/party`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            reservationCode: reservation.code,
+            seatIds: option.seatIds,
+          }),
+        },
+      )
+
+      if (!assignmentResponse.ok) {
+        const errorPayload = (await assignmentResponse
+          .json()
+          .catch(() => ({}))) as SeatPartyErrorResponse
+        setNotice({
+          kind: 'error',
+          text:
+            errorPayload.message ??
+            'We could not change all of the seat assignments. Everyone kept their previous seat.',
+        })
+        return
+      }
+
+      const nextStaged: Staged = Object.fromEntries(
+        passengers.map((passenger, index) => [
+          passenger.id,
+          option.seatIds[index] ?? passenger.seatId,
+        ]),
+      )
+      setStaged(nextStaged)
+
+      capture('seat_assignment_confirmed', {
+        seats: option.seatIds,
+        party_size: passengers.length,
+        same_row: seatsAreSameRow(option.seatIds),
+        contiguous: seatsAreContiguous(option.seatIds),
+        additional_cost: option.totalPriceCents,
+        interactions: interactions.current,
+        elapsed_ms: Date.now() - openedAt.current,
+      })
+
+      setNotice({
+        kind: 'success',
+        text: `Your seat assignments were automatically changed and saved: ${option.seatIds.join(', ')}.`,
+      })
+      router.refresh()
+    } catch {
+      setNotice({ kind: 'error', text: 'Something went wrong. Please try again.' })
+    } finally {
+      setAutomating(false)
+    }
+  }
+
   /**
    * Write the staged choices, one passenger at a time.
    *
@@ -329,6 +465,25 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
           <p className="mt-1 text-[0.8rem] text-ink-muted">
             Select a passenger, then select a seat. One passenger moves at a time.
           </p>
+
+          <div className="mt-4 rounded-[16px] bg-blue-tint p-4">
+            <p className="text-sm font-semibold text-ink">Keep your travelers together</p>
+            <p className="mt-1 text-[0.78rem] leading-relaxed text-ink-soft">
+              NovaAir can find the lowest-cost consecutive seats available and save every
+              traveler&apos;s assignment in one action.
+            </p>
+            <button
+              type="button"
+              aria-label="Automatically change seat assignments"
+              data-testid="automatically-change-seat-assignments"
+              onClick={automaticallyChangeSeats}
+              disabled={automating || confirming}
+              className="pill pill-outline mt-3 w-full px-5 py-3 text-[0.86rem]"
+            >
+              {automating ? 'Changing seat assignments...' : 'Automatically change seat assignments'}
+            </button>
+          </div>
+
           <div className="mt-4">
             <SeatLegend />
           </div>
@@ -447,8 +602,10 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
 
           <button
             type="button"
+            aria-label="Confirm seats"
+            data-testid="confirm-seats"
             onClick={confirm}
-            disabled={!hasChanges || confirming}
+            disabled={!hasChanges || confirming || automating}
             className="pill pill-primary mt-3 w-full px-7 py-4 text-[1rem]"
           >
             {confirming ? 'Saving...' : 'Confirm seats'}
