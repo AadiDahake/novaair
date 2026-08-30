@@ -35,12 +35,21 @@ export function readCaptureEnv(env = process.env) {
  *
  * `name` lands in PostHog's own `query_log`, which is the only way to tell these queries apart
  * from the product's when one of them is slow, so it is required rather than optional.
+ *
+ * `refresh` defaults to `force_blocking`, because PostHog caches a result against the text of the
+ * query. The verification runs the same text every time, so the default `blocking` can answer
+ * from a cache filled while a seeding run was still part way through.
  */
-export async function runQuery({ host, projectId, personalApiKey }, name, query) {
+export async function runQuery(
+  { host, projectId, personalApiKey },
+  name,
+  query,
+  refresh = 'force_blocking',
+) {
   const response = await fetch(`${host}/api/projects/${projectId}/query/`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${personalApiKey}` },
-    body: JSON.stringify({ query: { kind: 'HogQLQuery', query }, name }),
+    body: JSON.stringify({ query: { kind: 'HogQLQuery', query }, name, refresh }),
   })
   const body = await response.json().catch(() => ({}))
   if (!response.ok) {
