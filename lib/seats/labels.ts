@@ -13,7 +13,7 @@ import type { Seat } from './types'
  *   Seat 16C, exit row, adults only, 39 dollars
  *   Seat 15A, exit row, adults only, booked
  *   Seat 20D, blocked for accessibility
- *   Seat 12A, chosen for Sam
+ *   Seat 12A, chosen for Elon
  *
  * An exit-row seat that is free does not repeat the word "available". The exit-row wording plus a
  * price already says the seat can be taken, and this is the form the demo is written against.

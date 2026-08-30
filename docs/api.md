@@ -133,7 +133,7 @@ second time.
 Request:
 
 ```json
-{ "code": "NVA7K2", "lastName": "Altman" }
+{ "code": "NVA7K2", "lastName": "Musk" }
 ```
 
 Response `200` is the reservation with its flight and its passengers. `404
