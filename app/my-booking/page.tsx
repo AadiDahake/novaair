@@ -9,7 +9,7 @@ export default function MyBookingPage() {
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,460px)_1fr] lg:items-start">
       <div>
-        <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">
+        <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">
           My Booking
         </h1>
         <p className="mt-4 text-[0.98rem] leading-relaxed text-ink-muted">
@@ -23,7 +23,7 @@ export default function MyBookingPage() {
 
         <p className="mt-5 text-sm text-ink-muted">
           Cannot find your code?{' '}
-          <Link href="/help/changes-and-refunds" className="font-semibold text-blue underline">
+          <Link href="/help/changes-and-refunds" className="font-semibold text-blue-soft underline">
             Read the help article
           </Link>
           .
@@ -36,13 +36,13 @@ export default function MyBookingPage() {
         </div>
 
         <section aria-labelledby="demo-heading" className="rounded-[20px] bg-blue-tint p-6">
-          <h2 id="demo-heading" className="text-base font-bold text-navy">
+          <h2 id="demo-heading" className="text-base font-bold text-ink">
             This is a demonstration site
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-navy-soft">
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">
             NovaAir is fictional. One booking exists on it. Use confirmation code{' '}
             <strong className="font-bold">NVA7K2</strong> and last name{' '}
-            <strong className="font-bold">Dahake</strong> to open it.
+            <strong className="font-bold">Altman</strong> to open it.
           </p>
         </section>
       </div>

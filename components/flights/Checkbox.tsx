@@ -29,14 +29,14 @@ export function Checkbox({
       />
       <span
         aria-hidden="true"
-        className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px] border-[1.5px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue ${
-          checked ? 'border-navy bg-navy text-white' : 'border-line bg-white text-transparent'
+        className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px] border-[1.5px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-soft ${
+          checked ? 'border-blue bg-blue text-white' : 'border-line-strong bg-surface-sunk text-transparent'
         }`}
       >
         <CheckIcon />
       </span>
       {leading}
-      <span className="flex-1 text-[0.9rem] font-medium text-navy">{label}</span>
+      <span className="flex-1 text-[0.9rem] font-medium text-ink">{label}</span>
       {trailing}
     </label>
   )

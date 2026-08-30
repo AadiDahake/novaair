@@ -15,8 +15,8 @@ export function LogoMark({ size = 34, className = '' }: { size?: number; classNa
     >
       <defs>
         <linearGradient id="novaair-ray" x1="24" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#5c9dff" />
-          <stop offset="100%" stopColor="#0a4ae0" />
+          <stop offset="0%" stopColor="#bcd6ff" />
+          <stop offset="100%" stopColor="#3f82ff" />
         </linearGradient>
       </defs>
       {rays.map((angle, index) => {
@@ -35,8 +35,8 @@ export function LogoMark({ size = 34, className = '' }: { size?: number; classNa
           />
         )
       })}
-      <circle cx="24" cy="24" r="6.6" fill="#0a66ff" />
-      <circle cx="24" cy="24" r="2.6" fill="#ffffff" />
+      <circle cx="24" cy="24" r="6.6" fill="#2f7bff" />
+      <circle cx="24" cy="24" r="2.6" fill="#f4f6ff" />
     </svg>
   )
 }
@@ -45,7 +45,7 @@ export function Wordmark({ className = '' }: { className?: string }) {
   return (
     <span className={`flex items-center gap-2 ${className}`}>
       <LogoMark size={32} />
-      <span className="text-[1.35rem] font-bold tracking-tight text-navy">NovaAir</span>
+      <span className="text-[1.35rem] font-bold tracking-tight text-ink">NovaAir</span>
     </span>
   )
 }

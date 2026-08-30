@@ -15,7 +15,7 @@ const HOTELS = [
 export default function HotelsPage() {
   return (
     <div>
-      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">Hotels</h1>
+      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">Hotels</h1>
       <p className="mt-4 max-w-xl text-[0.98rem] leading-relaxed text-ink-muted">
         Add a room to any NovaAir booking. Every rate below includes taxes and free cancellation up
         to 48 hours before you arrive.
@@ -27,13 +27,13 @@ export default function HotelsPage() {
             <CabinIllustration className="h-36 w-full" />
             <div className="p-6">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-lg font-bold text-navy">{hotel.name}</h2>
-                <span className="rounded-full bg-blue-tint px-3 py-1 text-[0.68rem] font-semibold text-blue">
+                <h2 className="text-lg font-bold text-ink">{hotel.name}</h2>
+                <span className="rounded-full bg-blue-tint px-3 py-1 text-[0.68rem] font-semibold text-blue-soft">
                   {hotel.tag}
                 </span>
               </div>
               <p className="mt-1.5 text-sm text-ink-muted">{hotel.city}</p>
-              <p className="mt-4 text-base font-bold text-navy">{hotel.nights}</p>
+              <p className="mt-4 text-base font-bold text-ink">{hotel.nights}</p>
             </div>
           </article>
         ))}

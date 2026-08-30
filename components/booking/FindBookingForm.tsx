@@ -76,7 +76,7 @@ export function FindBookingForm() {
       {error ? (
         <p
           role="alert"
-          className="flex items-start gap-2 rounded-[14px] bg-orange-tint px-4 py-3 text-sm font-medium text-navy"
+          className="flex items-start gap-2 rounded-[14px] bg-orange-tint px-4 py-3 text-sm font-medium text-ink"
         >
           <WarningIcon className="mt-0.5 shrink-0 text-amber-ink" />
           {error}

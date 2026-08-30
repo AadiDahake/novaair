@@ -1,22 +1,76 @@
 @import "tailwindcss";
 
+/**
+ * NovaAir is a dark product. There is one theme, and it is this one.
+ *
+ * Every colour below is a token. Nothing in `app/` or `components/` should hold a palette colour
+ * of its own, so a change here reaches the whole site. `tests/contrast.test.ts` reads this block
+ * and fails if any text or control pair drops below WCAG AA.
+ */
 @theme {
-  --color-navy: #0b0b2b;
-  --color-navy-soft: #2a2a52;
-  --color-blue: #0a66ff;
-  --color-blue-dark: #0851cc;
-  --color-blue-tint: #eaf1ff;
+  /* --- Text, brightest to dimmest ------------------------------------------ */
+  /* Headings and anything that has to carry across a projector. */
+  --color-ink: #f4f6ff;
+  /* Body copy inside a tinted panel. */
+  --color-ink-soft: #c7cfe8;
+  /* Secondary body copy. */
+  --color-ink-muted: #aab3d0;
+  /* Field labels and captions. */
+  --color-ink-dim: #8e98ba;
+  /* Text that sits on a white pill or an amber tag. */
+  --color-ink-inverse: #10162e;
+
+  /* --- Surfaces, darkest to lightest --------------------------------------- */
+  /* The page behind the shell. */
+  --color-page-from: #0b1020;
+  --color-page-mid: #0e1428;
+  --color-page-to: #131a33;
+  /* An input well, sunk below its card. */
+  --color-surface-sunk: #141a33;
+  /* The one large shell the whole product sits inside. */
+  --color-shell: #151c36;
+  /* Cards and panels. */
+  --color-surface: #1a2140;
+  /* A panel raised inside a card. */
+  --color-surface-raised: #1f2748;
+
+  /* --- Hairlines ------------------------------------------------------------ */
+  /* A divider or a card edge. Decorative, so it stays faint. */
+  --color-line: #2e3659;
+  /* The edge of a control a customer can operate. Holds 3:1 against every surface. */
+  --color-line-strong: #6a7296;
+  /* That edge, under the pointer. */
+  --color-line-hover: #8a92b4;
+
+  /* --- Accents -------------------------------------------------------------- */
+  /* A filled action. White text on it holds 4.5:1, which is why it is not brighter. */
+  --color-blue: #2668ee;
+  --color-blue-dark: #1a52c8;
+  /* Blue as text or as an icon on a dark surface. */
+  --color-blue-soft: #8ab4ff;
+  /* The blue-tinted panel. */
+  --color-blue-tint: #1b2b52;
+
+  /* The seat outline, and the fill of a paid-seat price tag. */
   --color-orange: #f5a623;
-  /* The orange above is the seat outline. Text and icons use this darker amber. */
-  --color-amber-ink: #8a5a00;
-  --color-orange-tint: #fff7e9;
-  --color-seat-booked: #c9ccd6;
-  --color-nose: #eef2ff;
-  --color-ink-muted: #63667c;
-  --color-line: #e8e9f2;
-  --color-green: #12a15c;
-  --color-page-from: #dbe9ff;
-  --color-page-to: #ece9fb;
+  /* Amber as text or as an icon on a dark surface. */
+  --color-amber-ink: #f7c977;
+  /* The warm panel: an extra-legroom row, and an error notice. */
+  --color-orange-tint: #2c2314;
+
+  --color-seat-booked: #3a4262;
+  /*
+   * A blocked seat sits darker than a booked one and carries a hatch, so the two are told apart
+   * by more than a shade. Both stripes hold 4.5:1 against the seat id printed over them.
+   */
+  --color-seat-blocked: #333b59;
+  --color-seat-blocked-low: #232a47;
+  /*
+   * A booked or blocked seat recedes, so its pad sits close to the panel behind it. This is its
+   * armrest and its edge: one step lighter, so the seat still reads as a seat on a projector.
+   */
+  --color-seat-edge: #4a5378;
+  --color-green: #3ddc97;
 
   --radius-shell: 32px;
   --radius-card: 20px;
@@ -27,31 +81,44 @@
 
 @layer base {
   html {
+    /* Native controls, form widgets and scrollbars follow the page. */
+    color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
   body {
-    background: linear-gradient(135deg, var(--color-page-from) 0%, #e4e7fb 48%, var(--color-page-to) 100%);
+    background: linear-gradient(
+      140deg,
+      var(--color-page-from) 0%,
+      var(--color-page-mid) 46%,
+      var(--color-page-to) 100%
+    );
     background-attachment: fixed;
-    color: var(--color-navy);
+    color: var(--color-ink);
     font-family: var(--font-sans);
     min-height: 100vh;
   }
 
   :focus-visible {
-    outline: 3px solid var(--color-blue);
+    outline: 3px solid var(--color-blue-soft);
     outline-offset: 2px;
     border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--color-blue);
+    color: #ffffff;
   }
 }
 
 @layer components {
-  /* The one white container the whole product sits inside. */
+  /* The one container the whole product sits inside. */
   .app-shell {
-    background: #ffffff;
+    background: var(--color-shell);
+    border: 1px solid var(--color-line);
     border-radius: var(--radius-shell);
-    box-shadow: 0 24px 60px -30px rgba(11, 11, 43, 0.28);
+    box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
   }
 
   .pill {
@@ -74,7 +141,7 @@
   .pill-primary {
     background: var(--color-blue);
     color: #ffffff;
-    box-shadow: 0 10px 24px -12px rgba(10, 102, 255, 0.75);
+    box-shadow: 0 12px 28px -14px rgba(38, 104, 238, 0.9);
   }
 
   .pill-primary:hover {
@@ -82,35 +149,38 @@
   }
 
   .pill-primary:disabled {
-    background: #b9cdf5;
+    background: #263056;
+    color: var(--color-ink-muted);
     box-shadow: none;
     cursor: not-allowed;
   }
 
-  .pill-dark {
-    background: var(--color-navy);
-    color: #ffffff;
+  /* The strongest action on a dark page is a white one. */
+  .pill-light {
+    background: #ffffff;
+    color: var(--color-ink-inverse);
   }
 
-  .pill-dark:hover {
-    background: var(--color-navy-soft);
+  .pill-light:hover {
+    background: #dfe6ff;
   }
 
   .pill-outline {
-    background: #ffffff;
-    color: var(--color-navy);
-    border: 1.5px solid var(--color-line);
+    background: rgb(255 255 255 / 0.04);
+    color: var(--color-ink);
+    border: 1.5px solid var(--color-line-strong);
   }
 
   .pill-outline:hover {
-    border-color: #c9cbe0;
-    background: #fbfbff;
+    border-color: var(--color-line-hover);
+    background: rgb(255 255 255 / 0.09);
   }
 
   .card {
-    background: #ffffff;
+    background: var(--color-surface);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
+    box-shadow: 0 20px 44px -34px rgba(0, 0, 0, 0.85);
   }
 
   .field-label {
@@ -118,33 +188,33 @@
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.02em;
-    color: var(--color-ink-muted);
+    color: var(--color-ink-dim);
   }
 
   .field-value {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--color-navy);
+    color: var(--color-ink);
   }
 
   .text-input {
     width: 100%;
     border-radius: 14px;
-    border: 1.5px solid var(--color-line);
-    background: #ffffff;
+    border: 1.5px solid var(--color-line-strong);
+    background: var(--color-surface-sunk);
     padding: 0.7rem 0.9rem;
     font-size: 0.95rem;
     font-weight: 500;
-    color: var(--color-navy);
+    color: var(--color-ink);
   }
 
   .text-input::placeholder {
-    color: #a8aabb;
+    color: var(--color-ink-dim);
     font-weight: 400;
   }
 
   .text-input:hover {
-    border-color: #c9cbe0;
+    border-color: var(--color-line-hover);
   }
 }
 
@@ -152,8 +222,8 @@
 .seat-blocked-hatch {
   background-image: repeating-linear-gradient(
     45deg,
-    #d9dbe4 0 4px,
-    #eceef4 4px 8px
+    var(--color-seat-blocked) 0 4px,
+    var(--color-seat-blocked-low) 4px 8px
   );
 }
 

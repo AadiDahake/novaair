@@ -9,7 +9,7 @@ export function TripBreadcrumb({ code, current }: { code: string; current: 'trip
     <nav aria-label="Breadcrumb" className="mb-4">
       <ol className="flex items-center gap-2 text-sm text-ink-muted">
         <li>
-          <Link href="/" className="transition-colors hover:text-navy">
+          <Link href="/" className="transition-colors hover:text-ink">
             Home
           </Link>
         </li>
@@ -20,8 +20,8 @@ export function TripBreadcrumb({ code, current }: { code: string; current: 'trip
             aria-current={current === 'trip' ? 'page' : undefined}
             className={
               current === 'trip'
-                ? 'font-semibold text-navy'
-                : 'transition-colors hover:text-navy'
+                ? 'font-semibold text-ink'
+                : 'transition-colors hover:text-ink'
             }
           >
             Manage Trip
@@ -30,7 +30,7 @@ export function TripBreadcrumb({ code, current }: { code: string; current: 'trip
         {current === 'seats' ? (
           <>
             <li aria-hidden="true">/</li>
-            <li className="font-semibold text-navy" aria-current="page">
+            <li className="font-semibold text-ink" aria-current="page">
               Choose Seats
             </li>
           </>

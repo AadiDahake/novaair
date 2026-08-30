@@ -20,7 +20,7 @@ export function TopNav() {
       : LINKS.find((link) => pathname.startsWith(link.href))?.label
 
   return (
-    <header className="mb-8 rounded-[999px] border border-line bg-white px-4 py-3 shadow-[0_8px_28px_-22px_rgba(11,11,43,0.5)]">
+    <header className="mb-8 rounded-[999px] border border-line bg-surface px-4 py-3 shadow-[0_10px_30px_-24px_rgba(0,0,0,0.9)]">
       <nav aria-label="Main" className="flex items-center justify-between gap-6">
         <Link href="/" aria-label="NovaAir home" className="rounded-full">
           <Wordmark />
@@ -36,8 +36,8 @@ export function TopNav() {
                   aria-current={isActive ? 'page' : undefined}
                   className={
                     isActive
-                      ? 'text-[0.95rem] font-bold text-navy'
-                      : 'text-[0.95rem] font-medium text-ink-muted transition-colors hover:text-navy'
+                      ? 'text-[0.95rem] font-bold text-ink'
+                      : 'text-[0.95rem] font-medium text-ink-muted transition-colors hover:text-ink'
                   }
                 >
                   {link.label}
@@ -52,7 +52,7 @@ export function TopNav() {
             <PhoneIcon />
             Call Us
           </a>
-          <Link href="/my-booking" className="pill pill-dark px-5 py-2.5 text-[0.85rem]">
+          <Link href="/my-booking" className="pill pill-light px-5 py-2.5 text-[0.85rem]">
             <TicketIcon />
             My Booking
           </Link>

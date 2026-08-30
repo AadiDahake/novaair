@@ -15,7 +15,7 @@ const SCHEDULE = [
 export default function SchedulePage() {
   return (
     <div>
-      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">Schedule</h1>
+      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">Schedule</h1>
       <p className="mt-4 max-w-xl text-[0.98rem] leading-relaxed text-ink-muted">
         The NovaAir timetable for autumn 2026. All times are local to each airport.
       </p>
@@ -35,12 +35,12 @@ export default function SchedulePage() {
           <tbody>
             {SCHEDULE.map((row) => (
               <tr key={row.flight} className="border-b border-line last:border-0">
-                <th scope="row" className="px-6 py-4 font-bold text-navy">
+                <th scope="row" className="px-6 py-4 font-bold text-ink">
                   {row.flight}
                 </th>
-                <td className="px-6 py-4 text-navy-soft">{row.route}</td>
-                <td className="px-6 py-4 font-semibold text-navy">{row.departs}</td>
-                <td className="px-6 py-4 font-semibold text-navy">{row.arrives}</td>
+                <td className="px-6 py-4 text-ink-soft">{row.route}</td>
+                <td className="px-6 py-4 font-semibold text-ink">{row.departs}</td>
+                <td className="px-6 py-4 font-semibold text-ink">{row.arrives}</td>
                 <td className="px-6 py-4 text-ink-muted">{row.days}</td>
               </tr>
             ))}

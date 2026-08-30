@@ -1,8 +1,8 @@
 const ITEMS = [
-  { label: 'Available', box: 'border-[2px] border-orange bg-white' },
-  { label: 'Booked', box: 'bg-seat-booked' },
+  { label: 'Available', box: 'border-[2px] border-orange bg-surface-raised' },
+  { label: 'Booked', box: 'bg-seat-booked border-[1.5px] border-seat-edge' },
   { label: 'Selected', box: 'bg-blue' },
-  { label: 'Blocked', box: 'seat-blocked-hatch border-[1.5px] border-[#d9dbe4]' },
+  { label: 'Blocked', box: 'seat-blocked-hatch border-[1.5px] border-seat-edge' },
 ]
 
 export function SeatLegend() {
