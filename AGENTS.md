@@ -27,7 +27,7 @@ adding the code.
 | `app/api/` | Route handlers. Each one is a thin shell over one primitive. |
 | `app/` | Pages. `trips/[code]` is Manage Trip; `trips/[code]/seats` is the seat map. |
 | `components/seats/` | The seat map UI. `ChooseSeatsView.tsx` owns the interaction and the events. |
-| `scripts/` | Migrate, seed and reset, in plain `pg`. |
+| `scripts/` | Migrate, seed and reset, in plain `pg`. Also the PostHog seeders and the verifier. |
 | `supabase/migrations/` | The schema. |
 
 ## The primitives contract
@@ -50,6 +50,23 @@ rather than change one.
 
 Events fire only when `NEXT_PUBLIC_POSTHOG_KEY` is set, so nothing is sent in development or in
 tests by default.
+
+## The PostHog evidence
+
+`npm run seed:sessions` drives a browser over the running site so PostHog records real sessions
+with real replays. `npm run seed:outcomes` sends the figures for thirty days after a change that
+has not shipped. `npm run seed:verify` reads all of it back with HogQL. `docs/analytics.md` holds
+the plan, the working queries and what each seeded event means.
+
+- **PostHog cannot delete event data.** Both seeders take `--dry-run`. Use it. A run that stops
+  part way resumes from `.posthog-seed-progress.jsonl`, so never restart one from the top.
+- `scripts/lib/synth-sessions.ts` decides what each session does, deterministically, from
+  `createSeatDefinitions`. `tests/synth-sessions.test.ts` replays every planned click against the
+  cabin's rules, so a change to the seed fails there rather than an hour into a browser run. That
+  test also fixes the two numbers the demo quotes: a median of 14 seat-map actions, and a mean of
+  14.2.
+- The seeder types no passenger first name and reads the lookup from `lib/seats/demo-data.ts`, so
+  renaming the demo party does not break it.
 
 ## Accessible names are load-bearing
 

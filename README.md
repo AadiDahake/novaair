@@ -67,9 +67,14 @@ The site works with none of them set.
 | `SUPABASE_DB_URL` | Direct Postgres connection string. Used only by the migrate, seed and reset scripts. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project key. Without it, PostHog never starts. |
 | `NEXT_PUBLIC_POSTHOG_HOST` | PostHog ingestion host. |
+| `POSTHOG_HOST` | PostHog private API host. The seeding and verification scripts read it. |
+| `POSTHOG_PROJECT_ID` | The numeric PostHog project id. |
+| `POSTHOG_PERSONAL_API_KEY` | Personal API key, Query Read and Session Recording Read. Server only. |
 | `NEXT_PUBLIC_PATCHLET_WIDGET_URL` | The Patchlet widget script URL. |
 | `NEXT_PUBLIC_PATCHLET_KEY` | The Patchlet public key, sent as the script tag's `data-key`. |
-| `NOVAAIR_BASE_URL` | The site the reset script and the end-to-end run talk to. |
+| `NOVAAIR_BASE_URL` | The site the reset script, the end-to-end run and the session seeder talk to. |
+| `NOVAAIR_DEMO_CODE` | The booking the session seeder looks up. Defaults to the demo reservation. |
+| `NOVAAIR_DEMO_LAST_NAME` | The last name it looks it up with. Defaults to the demo reservation. |
 
 The Patchlet widget script tag renders only when both `NEXT_PUBLIC_PATCHLET_WIDGET_URL` and
 `NEXT_PUBLIC_PATCHLET_KEY` are set. NovaAir holds no other code for it.
@@ -85,6 +90,26 @@ npm run db:reset-demo  # put the demo back to 12A, 18C and 24F
 ```
 
 The scripts use `pg` directly. They need no Docker, no local Postgres and no Supabase CLI.
+
+## PostHog evidence
+
+The demo needs sessions in PostHog that show customers moving a party by hand, with replays a
+person can watch.
+
+```bash
+npm run seed:sessions -- --dry-run   # print the plan, send nothing
+npm run seed:sessions                # record 83 real sessions in a browser
+npm run seed:outcomes -- --dry-run   # print the seeded 30-day numbers
+npm run seed:outcomes                # send them through the capture endpoint
+npm run seed:verify                  # read it all back out of PostHog
+```
+
+`seed:sessions` drives the running site with a browser, so every session gets a real
+`$session_id` and a real replay. `seed:outcomes` sends the figures for thirty days after a change
+that has not shipped; every one of those events carries `seeded: true`, and NovaAir never sends
+them. `docs/analytics.md` holds the plan, the queries and what each seeded event means.
+
+PostHog cannot delete event data. Use `--dry-run` first, and run each seeder once.
 
 ## Deploy
 
