@@ -1,11 +1,13 @@
 # NovaAir API
 
-Every route handler is a thin shell over one primitive in `lib/seats/index.ts`. The client calls
-these routes; it never reaches the store directly.
+Every route handler is a thin shell over an exported operation in `lib/seats/index.ts`. The client
+calls these routes; it never reaches the store directly.
 
 All routes are dynamic. All bodies and responses are JSON.
 
-## The primitives
+## Seat domain exports
+
+### Primitives
 
 | Primitive | Job |
 | --- | --- |
@@ -17,14 +19,62 @@ All routes are dynamic. All bodies and responses are JSON.
 | `getReservation(code, lastName)` | Find one booking. |
 | `getReservationByCode(code)` | Read a booking when the code is already trusted. |
 
-No primitive today finds seats together, ranks blocks of seats, or moves more than one passenger.
-A caller that wants a party in one row reads the map and calls `assignSeat` for each passenger,
-which is what the site's own UI does.
+### Seat-party compositions
 
-An approved change may add a seat-party capability over these primitives. `AGENTS.md`, under
-"Adding seat-party capabilities", says where it belongs, and `tests/seat-party.test.ts` holds it
-to its invariants: contiguous same-row seats, no booked or blocked seats, the exit-row and child
-rules, ranking by extra cost, and one atomic apply.
+| Composition | Job |
+| --- | --- |
+| `findSeatsForParty(flightId, party)` | Find and rank valid adjacent blocks for a reservation party. |
+| `assignSeatsForParty(flightId, assignments)` | Move explicit passenger assignments to one adjacent block in an all-or-nothing operation. |
+| `assignSeatsForParty(flightId, party, seatIds)` | Move a party to an ordered adjacent block on a specified flight in an all-or-nothing operation. |
+| `assignSeatsForParty(party, seatIds)` | Resolve the party's flight and move the party to an ordered adjacent block in an all-or-nothing operation. |
+
+`findSeatsForParty` accepts a reservation code, passenger ids, or passenger records as its `party`
+argument. Every passenger must belong to the same reservation and flight.
+
+Each returned option has this shape:
+
+```json
+{
+  "row": 21,
+  "seatIds": ["21A", "21B", "21C"],
+  "assignments": [
+    { "passengerId": "PAX-1", "seatId": "21A" },
+    { "passengerId": "PAX-2", "seatId": "21B" },
+    { "passengerId": "PAX-3", "seatId": "21C" }
+  ],
+  "extraCostCents": 0,
+  "totalPriceCents": 0
+}
+```
+
+An option:
+
+- contains one seat for every passenger;
+- stays in one row and uses consecutive columns on one side of the aisle;
+- contains only available seats, never booked or blocked seats;
+- never includes a seat held by a passenger outside the party;
+- follows the restrictions returned by `getPassengerRestrictions`;
+- never places a child in an exit row;
+- includes an adult from the same party when a child must sit with an adult; and
+- carries the sum of `calculateSeatPrice` for all seats.
+
+Options are ordered by `extraCostCents`, with the lowest extra cost first. `totalPriceCents` contains
+the same total for route and client consumers. Row and seat ids provide a stable order when options
+have the same total.
+
+`assignSeatsForParty` supports three call forms. Callers may provide a flight id and one
+`{ passengerId, seatId }` assignment for each passenger, a flight id with a party and ordered seat
+ids, or a party with ordered seat ids. The party argument accepts the same reservation code,
+passenger ids, or passenger records as `findSeatsForParty`. When ordered seat ids are supplied, the
+passenger at each position is assigned the seat at the same position.
+
+Every call form validates the complete block before moving anyone. The passengers must belong to
+one reservation on the requested or resolved flight, each passenger and seat must appear once, and
+the seats must still form a valid adjacent block. If any assignment fails, completed writes are
+rolled back so every passenger keeps the seat they had before the request.
+
+`assignSeat` remains the single-passenger operation. Callers making a grouped choice use
+`assignSeatsForParty` instead of calling `assignSeat` repeatedly.
 
 ## Routes
 
@@ -64,8 +114,8 @@ The seat map.
 ```
 
 `baseState` is the seat itself: `available`, `booked` or `blocked`.
-`state` is what the map shows, after the booking's own seats are applied: `available`, `booked`,
-`blocked` or `occupied`.
+`state` is what the map shows after assignments are applied: `available`, `booked`, `blocked` or
+`occupied`.
 
 `404 { "error": "flight_not_found" }` when the flight does not exist.
 
@@ -84,6 +134,115 @@ The seat map.
 `400 { "error": "seat_query_required" }` with no `seat`.
 `404 { "error": "seat_not_found" }` when the seat is not on the aircraft.
 
+### GET `/api/seats/{flightId}/party?reservationCode={reservationCode}`
+
+Find ranked adjacent-seat options for every passenger on the reservation.
+
+Response `200`:
+
+```json
+{
+  "flightId": "NA214",
+  "options": [
+    {
+      "row": 21,
+      "seatIds": ["21A", "21B", "21C"],
+      "assignments": [
+        { "passengerId": "PAX-1", "seatId": "21A" },
+        { "passengerId": "PAX-2", "seatId": "21B" },
+        { "passengerId": "PAX-3", "seatId": "21C" }
+      ],
+      "extraCostCents": 0,
+      "totalPriceCents": 0
+    }
+  ]
+}
+```
+
+`options` is empty when there is no valid block for the whole party, the reservation does not
+belong to the flight, or the reservation cannot be found.
+
+A valid block contains only free, consecutive seats in one row on one side of the aisle. Results
+follow all passenger restrictions and are ordered by total extra cost.
+
+`400` when `reservationCode` is missing:
+
+```json
+{
+  "error": "reservationCode_query_required",
+  "message": "Enter a reservation code to find seats together."
+}
+```
+
+### POST `/api/seats/{flightId}/party`
+
+Assign a complete adjacent block to a party in one operation.
+
+Request:
+
+```json
+{
+  "assignments": [
+    { "passengerId": "PAX-1", "seatId": "21A" },
+    { "passengerId": "PAX-2", "seatId": "21B" },
+    { "passengerId": "PAX-3", "seatId": "21C" }
+  ]
+}
+```
+
+Response `200`:
+
+```json
+{
+  "ok": true,
+  "assignments": [
+    {
+      "ok": true,
+      "passengerId": "PAX-1",
+      "seatId": "21A",
+      "previousSeatId": "12A",
+      "priceCents": 0
+    },
+    {
+      "ok": true,
+      "passengerId": "PAX-2",
+      "seatId": "21B",
+      "previousSeatId": "18C",
+      "priceCents": 0
+    },
+    {
+      "ok": true,
+      "passengerId": "PAX-3",
+      "seatId": "21C",
+      "previousSeatId": "24F",
+      "priceCents": 0
+    }
+  ],
+  "totalPriceCents": 0
+}
+```
+
+The route validates the whole request before applying it. The party moves together or every
+passenger remains in their previous seat.
+
+Failures carry an `error` and a message written for a customer to read:
+
+| Status | `error` | When |
+| --- | --- | --- |
+| 400 | `assignments_required` | The body does not contain an assignments array or the array is empty. |
+| 400 | `invalid_assignments` | An assignment is missing a passenger id or seat id. |
+| 400 | `duplicate_passenger` | A passenger appears more than once. |
+| 400 | `duplicate_seat` | A seat appears more than once. |
+| 404 | `flight_not_found` | The flight does not exist. |
+| 404 | `party_not_found` | The passengers do not form one reservation party on this flight. |
+| 404 | `passenger_not_found` | A passenger cannot be found. |
+| 404 | `seat_not_found` | A seat is not on the aircraft. |
+| 409 | `seat_booked` | A requested seat is booked or another passenger holds it. |
+| 409 | `seat_blocked` | A requested seat is held for accessible seating. |
+| 422 | `adult_required` | A child who must sit with an adult has no adult in the party. |
+| 422 | `exit_row_child` | A passenger who cannot use an exit row was assigned there. |
+| 422 | `seats_not_together` | The seats are not consecutive in one row on one side of the aisle. |
+
 ### GET `/api/passengers/{passengerId}/restrictions`
 
 ```json
@@ -100,8 +259,7 @@ The seat map.
 
 ### POST `/api/assignments`
 
-Move one passenger to one seat. One passenger for each call. This route has no bulk form; a
-party apply, if one is added, is its own route under `/api/seats/{flightId}/`.
+Move one passenger to one seat. Use the flight-scoped party route when moving a group together.
 
 Request:
 
