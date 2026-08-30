@@ -8,7 +8,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import process from 'node:process'
-import pg from 'pg'
+import { createClient } from './lib/db.mjs'
 import { loadEnv } from './lib/env.mjs'
 
 loadEnv()
@@ -22,7 +22,7 @@ if (!connectionString) {
 const directory = join(process.cwd(), 'supabase', 'migrations')
 const files = (await readdir(directory)).filter((name) => name.endsWith('.sql')).sort()
 
-const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } })
+const client = createClient(connectionString)
 await client.connect()
 
 try {
