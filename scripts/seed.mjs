@@ -9,7 +9,7 @@
  * Run it with `npm run db:seed`, which loads the TypeScript modules through tsx.
  */
 import process from 'node:process'
-import pg from 'pg'
+import { createClient } from './lib/db.mjs'
 import { loadEnv } from './lib/env.mjs'
 
 loadEnv()
@@ -23,7 +23,7 @@ if (!connectionString) {
   process.exit(1)
 }
 
-const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } })
+const client = createClient(connectionString)
 await client.connect()
 
 try {
