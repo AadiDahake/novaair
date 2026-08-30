@@ -110,7 +110,7 @@ test('every seat carries an accessible name that says its state', async ({ page 
   await expect(page.locator('[data-seat="16C"]')).toHaveAccessibleName(
     'Seat 16C, exit row, adults only, booked',
   )
-  await expect(page.locator('[data-seat="12A"]')).toHaveAccessibleName('Seat 12A, chosen for Aadi')
+  await expect(page.locator('[data-seat="12A"]')).toHaveAccessibleName('Seat 12A, chosen for Sam')
 })
 
 test('a help article opens from the help center', async ({ page }) => {

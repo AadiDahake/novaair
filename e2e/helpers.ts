@@ -9,10 +9,10 @@ import { expect, type Page } from '@playwright/test'
 
 export const DEMO = {
   code: 'NVA7K2',
-  lastName: 'Dahake',
+  lastName: 'Altman',
   startSeats: ['12A', '18C', '24F'],
   targetSeats: ['21A', '21B', '21C'],
-  passengers: ['Aadi', 'Kiran', 'Mira'],
+  passengers: ['Sam', 'Elon', 'Zuck'],
 } as const
 
 /** Put the booking back to 12A, 18C and 24F. */
