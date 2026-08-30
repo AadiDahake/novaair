@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { FindBookingForm } from '../../components/booking/FindBookingForm'
 import { CabinIllustration } from '../../components/ui/PlaneIllustration'
+import { RESERVATION_CODE } from '../../lib/seats/constants'
+import { DEMO_LAST_NAME } from '../../lib/seats/demo-data'
 
 export const metadata: Metadata = { title: 'My Booking' }
 
@@ -41,8 +43,8 @@ export default function MyBookingPage() {
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
             NovaAir is fictional. One booking exists on it. Use confirmation code{' '}
-            <strong className="font-bold">NVA7K2</strong> and last name{' '}
-            <strong className="font-bold">Altman</strong> to open it.
+            <strong className="font-bold">{RESERVATION_CODE}</strong> and last name{' '}
+            <strong className="font-bold">{DEMO_LAST_NAME}</strong> to open it.
           </p>
         </section>
       </div>
