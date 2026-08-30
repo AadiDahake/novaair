@@ -21,9 +21,13 @@ import type {
 /**
  * The server-side seat primitives.
  *
- * Each one does a single job. Nothing here searches for seats together, ranks groups of seats, or
- * moves more than one passenger. A caller that wants a party in one row reads the map and assigns
- * each passenger separately, which is what the site's own UI does.
+ * Each one does a single job. Nothing here yet searches for seats together, ranks blocks of seats,
+ * or moves more than one passenger, so a caller that wants a party in one row reads the map and
+ * assigns each passenger separately, which is what the site's own UI does.
+ *
+ * A capability that composes these into a party search and a party apply belongs in this module.
+ * `AGENTS.md`, under "Adding seat-party capabilities", says what it must keep true, and
+ * `tests/seat-party.test.ts` enforces it.
  */
 
 function effectiveState(baseState: Seat['baseState'], occupied: boolean): SeatState {

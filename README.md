@@ -14,11 +14,13 @@ Nothing on this site is a real airline, a real flight or a real booking.
   for accessible seating. One passenger moves at a time.
 - A help center of six articles.
 
-## What it does not do
+## What it does not do yet
 
 NovaAir has no way to find seats together and no way to move a party in one action. A customer
-reads the map and moves each passenger by hand. That absence is deliberate, and
-`tests/no-group-seating.test.ts` fails if such a feature appears.
+reads the map and moves each passenger by hand. That is where the product starts, and it is the
+gap the Patchlet demo is about, rather than a rule: an approved change may add a seat-party
+capability. `AGENTS.md`, under "Adding seat-party capabilities", says where such code belongs, and
+`tests/seat-party.test.ts` holds it to its invariants.
 
 ## Run it
 

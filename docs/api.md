@@ -17,8 +17,14 @@ All routes are dynamic. All bodies and responses are JSON.
 | `getReservation(code, lastName)` | Find one booking. |
 | `getReservationByCode(code)` | Read a booking when the code is already trusted. |
 
-There is no primitive that finds seats together, ranks groups of seats, or moves more than one
-passenger. `tests/no-group-seating.test.ts` fails if one appears.
+No primitive today finds seats together, ranks blocks of seats, or moves more than one passenger.
+A caller that wants a party in one row reads the map and calls `assignSeat` for each passenger,
+which is what the site's own UI does.
+
+An approved change may add a seat-party capability over these primitives. `AGENTS.md`, under
+"Adding seat-party capabilities", says where it belongs, and `tests/seat-party.test.ts` holds it
+to its invariants: contiguous same-row seats, no booked or blocked seats, the exit-row and child
+rules, ranking by extra cost, and one atomic apply.
 
 ## Routes
 
@@ -94,7 +100,8 @@ The seat map.
 
 ### POST `/api/assignments`
 
-Move one passenger to one seat. One passenger for each call. There is no bulk form.
+Move one passenger to one seat. One passenger for each call. This route has no bulk form; a
+party apply, if one is added, is its own route under `/api/seats/{flightId}/`.
 
 Request:
 
