@@ -4,24 +4,16 @@ NovaAir is a fictional consumer airline website. It is the host product for the 
 `README.md` covers running and checking it. This file covers what an agent needs before it changes
 anything.
 
-## The starting state
+## The seat-party capability
 
-NovaAir has the seat primitives but not their composition. No function, route, help article or
-control finds seats together, ranks blocks of seats, or moves more than one passenger in one
-action, so a customer moves each passenger by hand. That gap is the demo's starting point: it is
-the thing the product being demonstrated is asked to close.
+NovaAir has seven single-purpose seat primitives and a deliberate seat-party composition. A family
+of three can find the cheapest valid block of adjacent seats from the seat map and move the whole
+party in one operation.
 
-It is a starting state, not a prohibition. An approved change may add a seat-party capability, and
-the next section says how. What the repository does guard against is drifting into one by
-accident: each primitive stays single-purpose, and a capability that composes them is a deliberate
-addition with its own tests and docs.
-
-## Adding seat-party capabilities
-
-An approved change - a filed request, an accepted pull request - may add a capability that finds a
-block of seats for a travel party and moves the party in one action. It composes the existing
-primitives rather than reaching past them into the store: `getSeatMap`, `getAvailableSeats`,
-`getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat` and `getReservation`.
+The capability composes the existing primitives rather than reaching past them into the store:
+`getSeatMap`, `getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
+`getReservation` and `getReservationByCode`. Its search and apply operations are
+`findSeatsForParty` and `assignSeatsForParty`.
 
 Where the pieces belong:
 
@@ -41,45 +33,54 @@ What it must keep true, whatever else it does:
 - **The passenger rules still hold.** No child in an exit row, and a passenger who must sit with an
   adult is only offered a block that also seats an adult from their own party. Read both from
   `getPassengerRestrictions` rather than restating them.
-- **Ranked by extra cost.** A block carries the sum of `calculateSeatPrice` over its seats, and the
-  cheapest block comes first.
+- **Ranked by extra cost.** Every result from `findSeatsForParty` is an object with the required
+  fields `seatIds`, `row` and `extraCostCents`. `row` is the numeric row shared by every seat in
+  `seatIds`. `extraCostCents` is the sum of `calculateSeatPrice` over those seats, and results are
+  sorted by that field with the cheapest block first. Other aliases may be added for the HTTP
+  response, but they never replace these domain fields.
 - **One atomic apply.** The whole party lands or none of it does. A failed apply leaves every
   passenger on the seat they already had.
 
-`tests/seat-party.test.ts` is the contract on all of that. It skips cleanly while no such
-capability exists, and enforces every point above the moment `lib/seats/index.ts` exports
-`findSeatsForParty` or `assignSeatsForParty`. Use those two names: they are what the test looks
-for, and an export under another name is a capability the test cannot guard. The same test still
-asserts that the seven primitives are all exported and that nothing else appears beside them.
+`tests/seat-party.test.ts` is the contract on all of that. It enforces every point above through
+the `findSeatsForParty` and `assignSeatsForParty` exports. Keep those names: they are what the test
+looks for, and an export under another name is a capability the test cannot guard. The same test
+also asserts that the seven primitives remain exported and that nothing else appears beside the
+known primitives and compositions.
 
-A change that ships this also updates `docs/api.md`, and the help center in `lib/help/articles.ts`
-where its copy no longer describes the product.
+Changes to this capability also update `docs/api.md` and the help center in
+`lib/help/articles.ts` when their documented behavior changes.
 
 ## Layout
 
 | Path | What lives there |
 | --- | --- |
-| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, and the primitives in `index.ts`. |
+| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, primitives and seat-party compositions. |
 | `lib/repo/` | Storage. `types.ts` is the contract; `memory.ts` and `supabase.ts` implement it; `index.ts` picks one. |
 | `lib/analytics/` | The event contract and `capture`. PostHog itself starts in `instrumentation-client.ts`. |
 | `lib/help/articles.ts` | Every help article, as data. |
-| `app/api/` | Route handlers. Each one is a thin shell over one primitive. |
+| `app/api/` | Route handlers. Each one is a thin shell over a domain operation. |
 | `app/` | Pages. `trips/[code]` is Manage Trip; `trips/[code]/seats` is the seat map. |
 | `components/seats/` | The seat map UI. `ChooseSeatsView.tsx` owns the interaction and the events. |
 | `scripts/` | Migrate, seed and reset, in plain `pg`. Also the PostHog seeders and the verifier. |
 | `supabase/migrations/` | The schema. |
 
-## The primitives contract
+## The seat domain contract
 
 `lib/seats/index.ts` exports seven primitives, documented in `docs/api.md`: `getSeatMap`,
 `getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
-`getReservation`, `getReservationByCode`. Today they are the whole of the module.
+`getReservation`, `getReservationByCode`. It also exports the `findSeatsForParty` and
+`assignSeatsForParty` compositions.
 
 - `assignSeat` moves one passenger. It is atomic, because the store rejects a seat another
   passenger holds, and it is idempotent for the same passenger and seat.
+- `findSeatsForParty(flightId, passengerIds)` returns an array of valid adjacent blocks. Each block
+  keeps the domain shape `{ seatIds, row, extraCostCents }`; `row` and `extraCostCents` must not be
+  omitted or replaced by route-level aliases.
+- `assignSeatsForParty` validates and moves a whole party, rolling back completed moves if an
+  assignment fails.
 - Adding an export to this module changes the contract. `tests/seat-party.test.ts` fails until the
   new name is one it knows, which is the moment to think about whether the export belongs and
-  whether it is really a primitive or a composition of them.
+  whether it is really a primitive or a composition.
 
 ## The analytics contract
 

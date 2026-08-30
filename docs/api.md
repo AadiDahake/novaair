@@ -1,11 +1,13 @@
 # NovaAir API
 
-Every route handler is a thin shell over one primitive in `lib/seats/index.ts`. The client calls
-these routes; it never reaches the store directly.
+Every route handler is a thin shell over a domain operation in `lib/seats/index.ts`. The client
+calls these routes; it never reaches the store directly.
 
 All routes are dynamic. All bodies and responses are JSON.
 
-## The primitives
+## Seat domain operations
+
+### Primitives
 
 | Primitive | Job |
 | --- | --- |
@@ -17,14 +19,58 @@ All routes are dynamic. All bodies and responses are JSON.
 | `getReservation(code, lastName)` | Find one booking. |
 | `getReservationByCode(code)` | Read a booking when the code is already trusted. |
 
-No primitive today finds seats together, ranks blocks of seats, or moves more than one passenger.
-A caller that wants a party in one row reads the map and calls `assignSeat` for each passenger,
-which is what the site's own UI does.
+### Seat-party compositions
 
-An approved change may add a seat-party capability over these primitives. `AGENTS.md`, under
-"Adding seat-party capabilities", says where it belongs, and `tests/seat-party.test.ts` holds it
-to its invariants: contiguous same-row seats, no booked or blocked seats, the exit-row and child
-rules, ranking by extra cost, and one atomic apply.
+| Composition | Job |
+| --- | --- |
+| `findSeatsForParty(flightId, passengerIds)` | Find valid adjacent seat blocks for a party, ranked by total extra cost. |
+| `assignSeatsForParty(...)` | Move every passenger in a party into one valid block as one all-or-nothing operation. |
+
+`findSeatsForParty` composes the seat map, availability, passenger restrictions and seat prices.
+Each returned block:
+
+- contains one seat for each requested passenger;
+- is in one row and uses consecutive columns on one side of the aisle;
+- excludes booked seats and seats held for accessible seating;
+- excludes seats held by passengers outside the requested party;
+- obeys exit-row and child seating restrictions;
+- includes the sum of the extra seat prices; and
+- is ordered after any cheaper valid block.
+
+Seats already held by a requested passenger may be included in a result.
+
+A block has this shape:
+
+```json
+{
+  "seatIds": ["21A", "21B", "21C"],
+  "seats": ["21A", "21B", "21C"],
+  "row": 21,
+  "totalPriceCents": 0,
+  "priceCents": 0,
+  "additionalCostCents": 0,
+  "extraCostCents": 0
+}
+```
+
+`seats` is an alias for `seatIds`. `priceCents`, `additionalCostCents` and `extraCostCents` are
+aliases for `totalPriceCents`.
+
+`assignSeatsForParty` accepts passenger and seat lists, assignment pairs, or a request object. A
+flight id may be supplied explicitly or resolved from the passengers' booking. Supported forms
+include:
+
+```ts
+assignSeatsForParty(passengerIds, seatIds)
+assignSeatsForParty(flightId, passengerIds, seatIds)
+assignSeatsForParty(flightId, assignments)
+assignSeatsForParty(assignments)
+assignSeatsForParty(request)
+```
+
+An assignment pair has `passengerId` and `seatId`. The target seats must form one valid block with
+one seat for each passenger. Every target is validated before writing. If any move fails,
+completed moves are rolled back and every passenger keeps the seat they had before the operation.
 
 ## Routes
 
@@ -84,6 +130,142 @@ The seat map.
 `400 { "error": "seat_query_required" }` with no `seat`.
 `404 { "error": "seat_not_found" }` when the seat is not on the aircraft.
 
+### GET `/api/seats/{flightId}/party`
+
+Find valid adjacent blocks for a travel party. Supply each passenger as a repeated `passengerId`
+query parameter:
+
+```text
+/api/seats/NA214/party?passengerId=PAX-1&passengerId=PAX-2&passengerId=PAX-3
+```
+
+`passengerIds` is also accepted, and a comma-separated value may be used.
+
+Response `200`:
+
+```json
+{
+  "flightId": "NA214",
+  "passengerIds": ["PAX-1", "PAX-2", "PAX-3"],
+  "blocks": [
+    {
+      "seatIds": ["21A", "21B", "21C"],
+      "seats": ["21A", "21B", "21C"],
+      "row": 21,
+      "totalPriceCents": 0,
+      "priceCents": 0,
+      "additionalCostCents": 0,
+      "extraCostCents": 0
+    }
+  ]
+}
+```
+
+`blocks` is ranked by `extraCostCents`, cheapest first. `totalPriceCents`, `priceCents` and
+`additionalCostCents` contain the same value. An empty array means no valid block is currently
+available.
+
+`400 { "error": "invalid_passengers" }` when no passengers are supplied, an id is repeated, or a
+passenger cannot be found.
+
+### POST `/api/seats/{flightId}/party`
+
+Move a party into one adjacent block. The operation applies every assignment or leaves every
+passenger in their previous seat.
+
+Request with parallel lists:
+
+```json
+{
+  "passengerIds": ["PAX-1", "PAX-2", "PAX-3"],
+  "seatIds": ["21A", "21B", "21C"]
+}
+```
+
+Assignment pairs are also accepted:
+
+```json
+{
+  "assignments": [
+    { "passengerId": "PAX-1", "seatId": "21A" },
+    { "passengerId": "PAX-2", "seatId": "21B" },
+    { "passengerId": "PAX-3", "seatId": "21C" }
+  ]
+}
+```
+
+Response `200`:
+
+```json
+{
+  "ok": true,
+  "flightId": "NA214",
+  "seatIds": ["21A", "21B", "21C"],
+  "totalPriceCents": 0,
+  "assignments": [
+    {
+      "ok": true,
+      "passengerId": "PAX-1",
+      "seatId": "21A",
+      "previousSeatId": "12A",
+      "priceCents": 0
+    },
+    {
+      "ok": true,
+      "passengerId": "PAX-2",
+      "seatId": "21B",
+      "previousSeatId": "18C",
+      "priceCents": 0
+    },
+    {
+      "ok": true,
+      "passengerId": "PAX-3",
+      "seatId": "21C",
+      "previousSeatId": "24F",
+      "priceCents": 0
+    }
+  ],
+  "results": [
+    {
+      "ok": true,
+      "passengerId": "PAX-1",
+      "seatId": "21A",
+      "previousSeatId": "12A",
+      "priceCents": 0
+    },
+    {
+      "ok": true,
+      "passengerId": "PAX-2",
+      "seatId": "21B",
+      "previousSeatId": "18C",
+      "priceCents": 0
+    },
+    {
+      "ok": true,
+      "passengerId": "PAX-3",
+      "seatId": "21C",
+      "previousSeatId": "24F",
+      "priceCents": 0
+    }
+  ]
+}
+```
+
+`results` is an alias for `assignments`.
+
+Failures include `ok: false`, matching `error` and `reason` values, and a customer-readable
+`message`:
+
+| Status | `error` | When |
+| --- | --- | --- |
+| 400 | `invalid_request` | The body is not valid JSON. |
+| 400 | `invalid_passengers` | Passenger ids are missing, repeated, unknown, on different bookings, or not on this flight. |
+| 422 | `invalid_seat_block` | Seat ids are missing, invalid, on different rows, cross the aisle, violate passenger restrictions, or do not match the party size. |
+| 409 | `seat_unavailable` | A target is booked, blocked, or held by somebody outside the party. |
+| 409 | `assignment_failed` | The complete party move could not be applied. |
+
+An `assignment_failed` response may include the failed single-seat result as `cause`.
+
 ### GET `/api/passengers/{passengerId}/restrictions`
 
 ```json
@@ -100,8 +282,8 @@ The seat map.
 
 ### POST `/api/assignments`
 
-Move one passenger to one seat. One passenger for each call. This route has no bulk form; a
-party apply, if one is added, is its own route under `/api/seats/{flightId}/`.
+Move one passenger to one seat. One passenger is moved for each call. Use
+`POST /api/seats/{flightId}/party` when a whole party must move together.
 
 Request:
 

@@ -25,6 +25,35 @@ interface Props {
   seatMap: SeatMap
 }
 
+interface PartySeatBlock {
+  seatIds: string[]
+  row?: number
+  totalPriceCents?: number
+  priceCents?: number
+  additionalCostCents?: number
+  extraCostCents?: number
+}
+
+interface PartySearchResponse {
+  blocks?: PartySeatBlock[]
+}
+
+interface PartyAssignmentResponse {
+  ok?: boolean
+  message?: string
+}
+
+function partyBlockCost(block: PartySeatBlock): number {
+  return (
+    [
+      block.totalPriceCents,
+      block.extraCostCents,
+      block.additionalCostCents,
+      block.priceCents,
+    ].find((value): value is number => typeof value === 'number' && Number.isFinite(value)) ?? 0
+  )
+}
+
 export function ChooseSeatsView({ reservation, seatMap }: Props) {
   const router = useRouter()
   const { passengers, flight } = reservation
@@ -35,6 +64,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [findingPartySeats, setFindingPartySeats] = useState(false)
+  const [partySuggestion, setPartySuggestion] = useState<PartySeatBlock | null>(null)
 
   const interactions = useRef(0)
   const openedAt = useRef(Date.now())
@@ -151,6 +182,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     }
 
     interactions.current += 1
+    setPartySuggestion(null)
     setStaged((current) => ({ ...current, [passenger.id]: seat.id }))
     setNotice(null)
     capture('seat_selected', {
@@ -201,12 +233,82 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     })
   }
 
+  async function findThreeSeatsTogether() {
+    if (passengers.length !== 3) {
+      setNotice({
+        kind: 'error',
+        text: 'Find three seats together is available for bookings with three passengers.',
+      })
+      return
+    }
+
+    interactions.current += 1
+    setFindingPartySeats(true)
+    setNotice(null)
+
+    const searchParams = new URLSearchParams()
+    for (const passenger of passengers) searchParams.append('passengerId', passenger.id)
+
+    try {
+      const response = await fetch(
+        `/api/seats/${encodeURIComponent(flight.id)}/party?${searchParams.toString()}`,
+      )
+      const payload = (await response.json().catch(() => ({}))) as PartySearchResponse & {
+        message?: string
+      }
+
+      if (!response.ok) {
+        setPartySuggestion(null)
+        setNotice({
+          kind: 'error',
+          text: payload.message ?? 'We could not find seats together. Please try again.',
+        })
+        return
+      }
+
+      const suggestion = payload.blocks?.[0]
+      if (!suggestion || suggestion.seatIds.length !== passengers.length) {
+        setPartySuggestion(null)
+        setNotice({
+          kind: 'error',
+          text: 'There are no three adjacent seats available for your family right now.',
+        })
+        return
+      }
+
+      setStaged((current) => {
+        const next = { ...current }
+        passengers.forEach((passenger, index) => {
+          next[passenger.id] = suggestion.seatIds[index] ?? passenger.seatId
+        })
+        return next
+      })
+      setPartySuggestion(suggestion)
+
+      const totalPriceCents = partyBlockCost(suggestion)
+      const cost =
+        totalPriceCents === 0
+          ? 'at no extra cost'
+          : `for $${(totalPriceCents / 100).toFixed(2)} total extra`
+      setNotice({
+        kind: 'success',
+        text: `Seats ${suggestion.seatIds.join(', ')} are selected together ${cost}. Confirm seats to save them.`,
+      })
+    } catch {
+      setPartySuggestion(null)
+      setNotice({ kind: 'error', text: 'Something went wrong. Please try again.' })
+    } finally {
+      setFindingPartySeats(false)
+    }
+  }
+
   /**
    * Write the staged choices, one passenger at a time.
    *
    * A passenger can only move into a seat that is free in the store. When one passenger is moving
    * out of the seat another passenger wants, the first move has to be written first, so the writes
-   * are ordered before they are sent.
+   * are ordered before they are sent. A suggested party block uses the party endpoint so all
+   * passengers move together or none of them move.
    */
   async function confirm() {
     const movers = passengers.filter(
@@ -216,6 +318,61 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
 
     setConfirming(true)
     setNotice(null)
+
+    if (partySuggestion) {
+      const partySeatIds = passengers
+        .map((passenger) => staged[passenger.id])
+        .filter((seatId): seatId is string => Boolean(seatId))
+
+      if (partySeatIds.length !== passengers.length) {
+        setNotice({
+          kind: 'error',
+          text: 'Every passenger needs a seat before the family block can be saved.',
+        })
+        setConfirming(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/seats/${encodeURIComponent(flight.id)}/party`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            passengerIds: passengers.map((passenger) => passenger.id),
+            seatIds: partySeatIds,
+          }),
+        })
+        const payload = (await response.json().catch(() => ({}))) as PartyAssignmentResponse
+
+        if (!response.ok || payload.ok === false) {
+          setNotice({
+            kind: 'error',
+            text:
+              payload.message ??
+              'We could not save all three seats together. Your previous seats have not changed.',
+          })
+          return
+        }
+
+        capture('seat_assignment_confirmed', {
+          seats: partySeatIds,
+          party_size: passengers.length,
+          same_row: seatsAreSameRow(partySeatIds),
+          contiguous: seatsAreContiguous(partySeatIds),
+          additional_cost: seatFeeCents,
+          interactions: interactions.current,
+          elapsed_ms: Date.now() - openedAt.current,
+        })
+
+        setNotice({ kind: 'success', text: 'Your three seats together are saved.' })
+        router.refresh()
+      } catch {
+        setNotice({ kind: 'error', text: 'Something went wrong. Please try again.' })
+      } finally {
+        setConfirming(false)
+      }
+      return
+    }
 
     const occupancy = new Map<string, string>()
     for (const passenger of passengers) {
@@ -327,7 +484,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
             {seatMap.cabinName}
           </h2>
           <p className="mt-1 text-[0.8rem] text-ink-muted">
-            Select a passenger, then select a seat. One passenger moves at a time.
+            Choose seats individually or find three seats together for your family.
           </p>
           <div className="mt-4">
             <SeatLegend />
@@ -449,6 +606,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
             type="button"
             onClick={confirm}
             disabled={!hasChanges || confirming}
+            aria-label="Confirm seats"
+            data-testid="confirm-seats"
             className="pill pill-primary mt-3 w-full px-7 py-4 text-[1rem]"
           >
             {confirming ? 'Saving...' : 'Confirm seats'}
@@ -457,6 +616,34 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
       </section>
 
       <aside className="space-y-6">
+        <section aria-labelledby="family-seating-heading" className="card p-6">
+          <h2 id="family-seating-heading" className="text-lg font-bold text-ink">
+            Family seating
+          </h2>
+          <p className="mt-1.5 text-[0.8rem] leading-relaxed text-ink-muted">
+            We will find the cheapest available block of three adjacent seats in one row, without
+            crossing the aisle.
+          </p>
+          <button
+            type="button"
+            onClick={findThreeSeatsTogether}
+            disabled={findingPartySeats || confirming || passengers.length !== 3}
+            aria-label="Find three seats together"
+            data-testid="find-three-seats-together"
+            className="pill pill-primary mt-5 w-full px-5 py-3 text-[0.88rem]"
+          >
+            {findingPartySeats ? 'Finding seats...' : 'Find three seats together'}
+          </button>
+          {partySuggestion ? (
+            <p
+              data-testid="family-seat-suggestion"
+              className="mt-4 rounded-[14px] bg-blue-tint px-4 py-3 text-[0.82rem] font-medium leading-relaxed text-ink"
+            >
+              Selected seats: {partySuggestion.seatIds.join(', ')}
+            </p>
+          ) : null}
+        </section>
+
         <section aria-labelledby="passenger-selector-heading" className="card p-6">
           <h2 id="passenger-selector-heading" className="text-lg font-bold text-ink">
             Passengers
