@@ -187,8 +187,8 @@ Notes on running it:
 - PostHog cannot delete event data. Run `--dry-run` first. If a run stops part way, run it again:
   the finished sessions are in `.posthog-seed-progress.jsonl` and are skipped.
 - On a site started with `next dev`, React runs mount effects twice, so `seat_map_opened` arrives
-  twice per session. The queries below count it as "more than none", so it makes no difference to
-  them.
+  twice per session. The queries below count it as "more than none" and take the earliest one, so
+  it makes no difference to them.
 
 The steps of a session are the helpers in `e2e/helpers.ts`, the same ones the end-to-end test uses.
 The helpers are separate from the specs so a session generator can compose them into different
@@ -289,6 +289,13 @@ The whole trajectory comes back in one pass over `events`. `groupArray` collects
 trims it to the window between opening the map and saving. There is no join and no window
 function, so it stays inside PostHog's ten second query budget. Always pass a `name` with the
 query: it is the only way to tell these apart from the product's own queries in `query_log`.
+
+Two things the query endpoint does that will surprise you:
+
+- **It caches against the text of the query.** Run the same query twice and the second answer can
+  come from a cache filled while a seeding run was still part way through, with no sign of it in
+  the numbers. Send `"refresh": "force_blocking"` when the answer has to be current.
+- **`OFFSET` is rejected** for personal API keys. Page with a keyset on `timestamp` instead.
 
 ### Watching one session
 

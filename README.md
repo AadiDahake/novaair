@@ -124,5 +124,5 @@ still runs, on the in-memory store, and its data resets when the instance recycl
 | `docs/api.md` | The primitives and the route handlers over them. |
 | `docs/analytics.md` | Every event name and property NovaAir sends. |
 | `docs/design-research.md` | What was read on real airline sites, and what NovaAir borrows. |
-| `docs/screenshots/` | The site at 1440x900. |
+| `docs/screenshots/` | The site at 1440x900, and one PostHog replay of a seeded session. |
 | `AGENTS.md` | How to work in this repository. |
