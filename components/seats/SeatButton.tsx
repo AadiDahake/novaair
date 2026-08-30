@@ -4,16 +4,16 @@ import type { Seat } from '../../lib/seats/types'
 import { priceTag, seatAriaLabel } from '../../lib/seats/labels'
 
 const SHELL_BY_STATE: Record<string, string> = {
-  available: 'bg-white border-[2px] border-orange text-navy hover:bg-orange-tint',
-  booked: 'bg-seat-booked border-[2px] border-seat-booked text-[#454857]',
-  blocked: 'seat-blocked-hatch border-[2px] border-[#d9dbe4] text-[#5c6070]',
+  available: 'bg-surface-raised border-[2px] border-orange text-ink hover:bg-orange-tint',
+  booked: 'bg-seat-booked border-[2px] border-seat-edge text-ink-muted',
+  blocked: 'seat-blocked-hatch border-[2px] border-seat-edge text-ink-muted',
   occupied: 'bg-blue border-[2px] border-blue text-white',
 }
 
 const TAB_BY_STATE: Record<string, string> = {
   available: 'bg-orange',
-  booked: 'bg-[#b3b7c4]',
-  blocked: 'bg-[#d0d3dd]',
+  booked: 'bg-seat-edge',
+  blocked: 'bg-seat-edge',
   occupied: 'bg-blue-dark',
 }
 
@@ -58,7 +58,7 @@ export function SeatButton({
       {tag ? (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -right-[3px] -top-[7px] rounded-full bg-orange px-[5px] py-[1px] text-[0.5rem] font-bold leading-[1.35] text-navy"
+          className="pointer-events-none absolute -right-[3px] -top-[7px] rounded-full bg-orange px-[5px] py-[1px] text-[0.5rem] font-bold leading-[1.35] text-ink-inverse"
         >
           {tag}
         </span>

@@ -3,7 +3,7 @@ import Link from 'next/link'
 export default function TripNotFound() {
   return (
     <div className="py-20 text-center">
-      <h1 className="text-[2.5rem] font-extrabold tracking-tight text-navy">
+      <h1 className="text-[2.5rem] font-extrabold tracking-tight text-ink">
         We cannot find that booking
       </h1>
       <p className="mx-auto mt-4 max-w-md text-[0.98rem] leading-relaxed text-ink-muted">

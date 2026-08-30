@@ -37,7 +37,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">
+        <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">
           Flight Search
         </h1>
         <p className="mt-3 text-[0.95rem] text-ink-muted">
@@ -67,7 +67,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
 
       <div className="grid gap-7 lg:grid-cols-[300px_1fr] lg:items-start">
         <section aria-labelledby="filters-heading" className="card p-6">
-          <h2 id="filters-heading" className="text-lg font-bold text-navy">
+          <h2 id="filters-heading" className="text-lg font-bold text-ink">
             Filters Ticket
           </h2>
 
@@ -91,7 +91,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
               onChange={setAirlineChecked}
               leading={<LogoMark size={20} />}
               trailing={
-                <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue-dark">
+                <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue-soft">
                   Available
                 </span>
               }
@@ -123,9 +123,9 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
                   <div>
                     <div className="flex items-center gap-2.5">
                       <LogoMark size={22} />
-                      <span className="text-sm font-bold text-navy">NovaAir</span>
+                      <span className="text-sm font-bold text-ink">NovaAir</span>
                       <span className="text-sm text-ink-muted">{result.flightNumber}</span>
-                      <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue-dark">
+                      <span className="rounded-full bg-blue-tint px-2.5 py-1 text-[0.7rem] font-semibold text-blue-soft">
                         {result.cabin}
                       </span>
                     </div>
@@ -133,7 +133,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
                     <div className="mt-4 flex items-center gap-6">
                       <div>
                         <span className="field-label">Departs</span>
-                        <p className="text-xl font-bold text-navy">{result.departureTime}</p>
+                        <p className="text-xl font-bold text-ink">{result.departureTime}</p>
                       </div>
                       <div className="mx-auto w-full min-w-[180px] max-w-[300px]">
                         <RouteLine from={from.code} to={to.code} stops={result.stops} />
@@ -143,7 +143,7 @@ export function FlightSearchView({ from, to, dateLabel, passengers }: Props) {
                       </div>
                       <div>
                         <span className="field-label">Arrives</span>
-                        <p className="text-xl font-bold text-navy">{result.arrivalTime}</p>
+                        <p className="text-xl font-bold text-ink">{result.arrivalTime}</p>
                       </div>
                     </div>
 

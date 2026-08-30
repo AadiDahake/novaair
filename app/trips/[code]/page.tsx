@@ -5,7 +5,12 @@ import { LogoMark } from '../../../components/brand/Logo'
 import { RouteLine } from '../../../components/flights/RouteLine'
 import { TripBreadcrumb } from '../../../components/trip/Breadcrumb'
 import { TripSections } from '../../../components/trip/TripSections'
-import { formatDuration, formatLongDate } from '../../../lib/format'
+import {
+  formatDuration,
+  formatLongDate,
+  passengerFullName,
+  passengerInitials,
+} from '../../../lib/format'
 import { getReservationByCode } from '../../../lib/seats'
 
 export const dynamic = 'force-dynamic'
@@ -25,12 +30,12 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
 
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">
+          <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">
             Manage Trip
           </h1>
           <p className="mt-3 text-[0.95rem] text-ink-muted">
             Confirmation code{' '}
-            <strong className="font-bold tracking-[0.12em] text-navy">{reservation.code}</strong>{' '}
+            <strong className="font-bold tracking-[0.12em] text-ink">{reservation.code}</strong>{' '}
             for {reservation.lastName}
           </p>
         </div>
@@ -43,24 +48,24 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
         <div className="space-y-7">
           <section aria-labelledby="itinerary-heading" className="card p-7">
             <div className="flex items-center justify-between gap-4">
-              <h2 id="itinerary-heading" className="text-lg font-bold text-navy">
+              <h2 id="itinerary-heading" className="text-lg font-bold text-ink">
                 Your itinerary
               </h2>
-              <span className="rounded-full bg-blue-tint px-3.5 py-1.5 text-xs font-semibold text-blue-dark">
+              <span className="rounded-full bg-blue-tint px-3.5 py-1.5 text-xs font-semibold text-blue-soft">
                 {reservation.fareBrand}
               </span>
             </div>
 
             <div className="mt-6 flex items-center gap-2.5">
               <LogoMark size={24} />
-              <span className="font-bold text-navy">NovaAir {flight.flightNumber}</span>
+              <span className="font-bold text-ink">NovaAir {flight.flightNumber}</span>
               <span className="text-sm text-ink-muted">{flight.aircraft}</span>
             </div>
 
             <div className="mt-5 grid gap-6 sm:grid-cols-[auto_1fr_auto] sm:items-center">
               <div>
                 <span className="field-label">Departure</span>
-                <p className="mt-1 text-2xl font-extrabold text-navy">{flight.departureTime}</p>
+                <p className="mt-1 text-2xl font-extrabold text-ink">{flight.departureTime}</p>
                 <p className="text-sm text-ink-muted">
                   {flight.originCity} ({flight.originCode})
                 </p>
@@ -73,7 +78,7 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
               </div>
               <div className="sm:text-right">
                 <span className="field-label">Arrival</span>
-                <p className="mt-1 text-2xl font-extrabold text-navy">{flight.arrivalTime}</p>
+                <p className="mt-1 text-2xl font-extrabold text-ink">{flight.arrivalTime}</p>
                 <p className="text-sm text-ink-muted">
                   {flight.destinationCity} ({flight.destinationCode})
                 </p>
@@ -107,19 +112,18 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
 
         <aside className="space-y-6">
           <section aria-labelledby="passengers-heading" className="card p-6">
-            <h2 id="passengers-heading" className="text-base font-bold text-navy">
+            <h2 id="passengers-heading" className="text-base font-bold text-ink">
               Passengers
             </h2>
             <ul className="mt-4 space-y-4">
               {passengers.map((passenger) => (
                 <li key={passenger.id} className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-tint text-sm font-bold text-blue-dark">
-                    {passenger.firstName.slice(0, 1)}
-                    {passenger.lastName.slice(0, 1)}
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-tint text-sm font-bold text-blue-soft">
+                    {passengerInitials(passenger)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-navy">
-                      {passenger.firstName} {passenger.lastName}
+                    <span className="block truncate text-sm font-semibold text-ink">
+                      {passengerFullName(passenger)}
                     </span>
                     <span className="block text-xs text-ink-muted">
                       {passenger.type === 'adult' ? 'Adult' : `Child, age ${passenger.age}`} - seat{' '}
@@ -132,34 +136,34 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
           </section>
 
           <section aria-labelledby="payment-heading" className="card p-6">
-            <h2 id="payment-heading" className="text-base font-bold text-navy">
+            <h2 id="payment-heading" className="text-base font-bold text-ink">
               Payment
             </h2>
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-muted">Booked on</dt>
-                <dd className="font-semibold text-navy">{formatLongDate(reservation.bookedOn)}</dd>
+                <dd className="font-semibold text-ink">{formatLongDate(reservation.bookedOn)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-muted">Fare</dt>
-                <dd className="font-semibold text-navy">{reservation.fareBrand}</dd>
+                <dd className="font-semibold text-ink">{reservation.fareBrand}</dd>
               </div>
               <div className="flex justify-between gap-4 border-t border-line pt-3">
                 <dt className="text-ink-muted">Total paid</dt>
-                <dd className="text-lg font-extrabold text-blue">${reservation.totalPaidUsd}</dd>
+                <dd className="text-lg font-extrabold text-blue-soft">${reservation.totalPaidUsd}</dd>
               </div>
             </dl>
           </section>
 
           <section aria-labelledby="help-heading" className="rounded-[20px] bg-blue-tint p-6">
-            <h2 id="help-heading" className="text-base font-bold text-navy">
+            <h2 id="help-heading" className="text-base font-bold text-ink">
               Need help?
             </h2>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link
                   href="/help/how-do-i-change-my-seat"
-                  className="font-medium text-navy-soft underline transition-colors hover:text-navy"
+                  className="font-medium text-ink-soft underline transition-colors hover:text-ink"
                 >
                   How do I change my seat?
                 </Link>
@@ -167,7 +171,7 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
               <li>
                 <Link
                   href="/help/traveling-with-children"
-                  className="font-medium text-navy-soft underline transition-colors hover:text-navy"
+                  className="font-medium text-ink-soft underline transition-colors hover:text-ink"
                 >
                   Traveling with children
                 </Link>
@@ -175,7 +179,7 @@ export default async function TripPage({ params }: { params: Promise<{ code: str
               <li>
                 <Link
                   href="/help/seat-selection-fees"
-                  className="font-medium text-navy-soft underline transition-colors hover:text-navy"
+                  className="font-medium text-ink-soft underline transition-colors hover:text-ink"
                 >
                   Seat selection fees
                 </Link>

@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#dbe9ff',
+  themeColor: '#0b1020',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <a
           href="#main"
-          className="pill pill-dark sr-only px-5 py-2.5 focus:not-sr-only focus:absolute focus:left-6 focus:top-6 focus:z-50"
+          className="pill pill-light sr-only px-5 py-2.5 focus:not-sr-only focus:absolute focus:left-6 focus:top-6 focus:z-50"
         >
           Skip to main content
         </a>

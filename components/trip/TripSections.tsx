@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRef, useState } from 'react'
+import { passengerFullName } from '../../lib/format'
 import type { Passenger } from '../../lib/seats/types'
 import { ArrowRightIcon } from '../ui/icons'
 
@@ -65,7 +66,7 @@ export function TripSections({
               onClick={() => setActive(section.key)}
               onKeyDown={(event) => onKeyDown(event, index)}
               className={`pill px-6 py-2.5 text-[0.9rem] ${
-                isActive ? 'pill-dark' : 'text-ink-muted hover:bg-blue-tint hover:text-navy'
+                isActive ? 'pill-light' : 'text-ink-muted hover:bg-blue-tint hover:text-ink'
               }`}
             >
               {section.label}
@@ -83,7 +84,7 @@ export function TripSections({
       >
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
-            <h3 className="text-lg font-bold text-navy">Your seats</h3>
+            <h3 className="text-lg font-bold text-ink">Your seats</h3>
             <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-ink-muted">
               These are the seats on your booking today. Seats are changed one passenger at a time.
             </p>
@@ -101,14 +102,12 @@ export function TripSections({
           {passengers.map((passenger) => (
             <li key={passenger.id} className="flex items-center justify-between gap-4 py-4">
               <div>
-                <p className="font-semibold text-navy">
-                  {passenger.firstName} {passenger.lastName}
-                </p>
+                <p className="font-semibold text-ink">{passengerFullName(passenger)}</p>
                 <p className="mt-0.5 text-xs text-ink-muted">
                   {passenger.type === 'adult' ? 'Adult' : `Child, age ${passenger.age}`}
                 </p>
               </div>
-              <span className="rounded-[12px] bg-blue-tint px-4 py-2 text-base font-bold text-blue-dark">
+              <span className="rounded-[12px] bg-blue-tint px-4 py-2 text-base font-bold text-blue-soft">
                 {passenger.seatId ?? 'No seat'}
               </span>
             </li>
@@ -123,7 +122,7 @@ export function TripSections({
         hidden={active !== 'bags'}
         className="p-7"
       >
-        <h3 className="text-lg font-bold text-navy">Bags</h3>
+        <h3 className="text-lg font-bold text-ink">Bags</h3>
         <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-ink-muted">
           Every passenger on this booking has one personal item and one carry-on bag.
         </p>
@@ -136,10 +135,10 @@ export function TripSections({
           ].map((row) => (
             <li key={row.label} className="flex items-center justify-between gap-4 py-4">
               <div>
-                <p className="font-semibold text-navy">{row.label}</p>
+                <p className="font-semibold text-ink">{row.label}</p>
                 <p className="mt-0.5 text-xs text-ink-muted">{row.detail}</p>
               </div>
-              <span className="text-base font-bold text-navy">{row.price}</span>
+              <span className="text-base font-bold text-ink">{row.price}</span>
             </li>
           ))}
         </ul>
@@ -155,12 +154,12 @@ export function TripSections({
         hidden={active !== 'checkin'}
         className="p-7"
       >
-        <h3 className="text-lg font-bold text-navy">Check-in</h3>
+        <h3 className="text-lg font-bold text-ink">Check-in</h3>
         <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-ink-muted">
           Check-in opens 24 hours before departure on {departureDateLabel}. Change your seats before
           you check in.
         </p>
-        <p className="mt-6 rounded-[14px] bg-blue-tint px-5 py-4 text-sm font-medium text-navy">
+        <p className="mt-6 rounded-[14px] bg-blue-tint px-5 py-4 text-sm font-medium text-ink">
           Check-in is not open yet for this flight.
         </p>
         <Link href="/help/check-in" className="pill pill-outline mt-6 px-6 py-3 text-[0.9rem]">

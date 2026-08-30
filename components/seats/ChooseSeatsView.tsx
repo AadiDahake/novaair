@@ -293,13 +293,13 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
       <div className="space-y-6">
         <Link
           href={`/trips/${reservation.code}`}
-          className="pill pill-dark px-6 py-3 text-[0.9rem]"
+          className="pill pill-light px-6 py-3 text-[0.9rem]"
         >
           <ArrowLeftIcon size={16} />
           Back to Manage Trip
         </Link>
 
-        <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">
+        <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">
           Choose Seats
         </h1>
 
@@ -316,14 +316,14 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
 
       <section
         aria-labelledby="seat-map-heading"
-        className="overflow-hidden rounded-[28px] border border-line bg-white"
+        className="overflow-hidden rounded-[28px] border border-line bg-surface shadow-[0_24px_54px_-36px_rgba(0,0,0,0.9)]"
       >
-        <div className="flex justify-center bg-white pt-7">
+        <div className="flex justify-center pt-7">
           <PlaneNose className="h-[112px] w-[336px]" />
         </div>
 
         <div className="px-6 pb-4 text-center">
-          <h2 id="seat-map-heading" className="text-xl font-bold text-navy">
+          <h2 id="seat-map-heading" className="text-xl font-bold text-ink">
             {seatMap.cabinName}
           </h2>
           <p className="mt-1 text-[0.8rem] text-ink-muted">
@@ -334,7 +334,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
           </div>
         </div>
 
-        <div className="max-h-[560px] overflow-y-auto border-b border-line bg-white px-4 pb-6 pt-2">
+        <div className="max-h-[560px] overflow-y-auto border-b border-line px-4 pb-6 pt-2">
           <div className="mx-auto w-fit">
             <div
               aria-hidden="true"
@@ -433,8 +433,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
                 data-testid="seat-notice"
                 className={`flex items-start gap-2 rounded-[14px] px-4 py-3 text-sm font-medium ${
                   notice.kind === 'error'
-                    ? 'bg-orange-tint text-navy'
-                    : 'bg-blue-tint text-navy'
+                    ? 'bg-orange-tint text-ink'
+                    : 'bg-blue-tint text-ink'
                 }`}
               >
                 {notice.kind === 'error' ? (
@@ -458,7 +458,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
 
       <aside className="space-y-6">
         <section aria-labelledby="passenger-selector-heading" className="card p-6">
-          <h2 id="passenger-selector-heading" className="text-lg font-bold text-navy">
+          <h2 id="passenger-selector-heading" className="text-lg font-bold text-ink">
             Passengers
           </h2>
           <p className="mt-1.5 text-[0.8rem] leading-relaxed text-ink-muted">
@@ -475,10 +475,10 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
         </section>
 
         <section aria-labelledby="seat-rules-heading" className="rounded-[20px] bg-blue-tint p-6">
-          <h2 id="seat-rules-heading" className="text-base font-bold text-navy">
+          <h2 id="seat-rules-heading" className="text-base font-bold text-ink">
             Seat rules
           </h2>
-          <ul className="mt-3 space-y-2 text-[0.82rem] leading-relaxed text-navy-soft">
+          <ul className="mt-3 space-y-2 text-[0.82rem] leading-relaxed text-ink-soft">
             <li>Rows 15 and 16 are exit rows. Adults only.</li>
             <li>Rows 1 to 3, 15 and 16 have extra legroom and cost more.</li>
             <li>A child under 13 must sit next to an adult on this booking.</li>

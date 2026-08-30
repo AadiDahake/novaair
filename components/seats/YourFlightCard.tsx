@@ -20,7 +20,7 @@ export function YourFlightCard({
   return (
     <section aria-labelledby="your-flight-heading" className="card p-6">
       <div className="flex items-start justify-between gap-4">
-        <h2 id="your-flight-heading" className="text-lg font-bold text-navy">
+        <h2 id="your-flight-heading" className="text-lg font-bold text-ink">
           Your Flight
         </h2>
         <button
@@ -29,7 +29,7 @@ export function YourFlightCard({
           aria-expanded={open}
           aria-controls="your-flight-body"
           aria-label={open ? 'Hide flight details' : 'Show flight details'}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-line text-navy transition-colors hover:bg-blue-tint"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-line-strong text-ink transition-colors hover:border-line-hover hover:bg-blue-tint"
         >
           <ArrowUpIcon className={open ? '' : 'rotate-180'} />
         </button>
@@ -61,16 +61,16 @@ export function YourFlightCard({
           </div>
         </div>
 
-        <div className="mt-5 rounded-[16px] border border-line bg-white p-5">
+        <div className="mt-5 rounded-[16px] border border-line bg-surface-raised p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <LogoMark size={26} />
               <div>
-                <p className="text-sm font-bold text-navy">NovaAir</p>
+                <p className="text-sm font-bold text-ink">NovaAir</p>
                 <p className="text-xs text-ink-muted">{flight.flightNumber}</p>
               </div>
             </div>
-            <span className="pill pill-dark px-4 py-1.5 text-[0.72rem]">Details</span>
+            <span className="pill pill-light px-4 py-1.5 text-[0.72rem]">Details</span>
           </div>
 
           <p className="mt-4 text-xs text-ink-muted">
@@ -93,10 +93,10 @@ export function YourFlightCard({
             <CabinIllustration className="h-full w-full" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-navy">{flight.cabinName}</span>
+            <span className="block text-sm font-bold text-ink">{flight.cabinName}</span>
             <span className="block text-xs text-ink-muted">Standard seat, no extra cost</span>
           </span>
-          <span className="text-base font-extrabold text-navy">${flight.fareUsd}</span>
+          <span className="text-base font-extrabold text-ink">${flight.fareUsd}</span>
         </div>
       </div>
     </section>

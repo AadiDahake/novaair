@@ -29,7 +29,7 @@ export function Footer() {
         <div className="max-w-xs">
           <div className="flex items-center gap-2">
             <LogoMark size={26} />
-            <span className="text-lg font-bold text-navy">NovaAir</span>
+            <span className="text-lg font-bold text-ink">NovaAir</span>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-ink-muted">
             NovaAir is a fictional airline. Every flight, price and reservation on this site is
@@ -39,13 +39,13 @@ export function Footer() {
 
         {COLUMNS.map((column) => (
           <nav key={column.heading} aria-label={column.heading}>
-            <h2 className="text-sm font-bold text-navy">{column.heading}</h2>
+            <h2 className="text-sm font-bold text-ink">{column.heading}</h2>
             <ul className="mt-3 space-y-2">
               {column.links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-ink-muted transition-colors hover:text-navy"
+                    className="text-sm text-ink-muted transition-colors hover:text-ink"
                   >
                     {link.label}
                   </Link>
@@ -56,7 +56,7 @@ export function Footer() {
         ))}
 
         <div>
-          <h2 className="text-sm font-bold text-navy">Contact</h2>
+          <h2 className="text-sm font-bold text-ink">Contact</h2>
           <p className="mt-3 text-sm text-ink-muted">1-800-555-0142</p>
           <p className="mt-1 text-sm text-ink-muted">Every day, 05:00 to 23:00 PT</p>
         </div>

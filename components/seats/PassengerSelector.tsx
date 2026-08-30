@@ -1,5 +1,6 @@
 'use client'
 
+import { passengerFullName, passengerInitials } from '../../lib/format'
 import type { Passenger } from '../../lib/seats/types'
 
 /**
@@ -40,21 +41,20 @@ export function PassengerSelector({
             className={`flex w-full items-center gap-3 rounded-[16px] border-[1.5px] px-4 py-3 text-left transition-colors ${
               isSelected
                 ? 'border-blue bg-blue-tint'
-                : 'border-line bg-white hover:border-[#c9cbe0]'
+                : 'border-line-strong bg-surface-raised hover:border-line-hover'
             }`}
           >
             <span
               aria-hidden="true"
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                isSelected ? 'bg-blue text-white' : 'bg-blue-tint text-blue-dark'
+                isSelected ? 'bg-blue text-white' : 'bg-blue-tint text-blue-soft'
               }`}
             >
-              {passenger.firstName.slice(0, 1)}
-              {passenger.lastName.slice(0, 1)}
+              {passengerInitials(passenger)}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold text-navy">
-                {passenger.firstName} {passenger.lastName}
+              <span className="block truncate text-sm font-bold text-ink">
+                {passengerFullName(passenger)}
               </span>
               <span className="block text-xs text-ink-muted">
                 {passenger.type === 'adult' ? 'Adult' : `Child, age ${passenger.age}`}
@@ -62,12 +62,12 @@ export function PassengerSelector({
             </span>
             <span className="text-right">
               <span
-                className={`block text-base font-extrabold ${changed ? 'text-blue-dark' : 'text-navy'}`}
+                className={`block text-base font-extrabold ${changed ? 'text-blue-soft' : 'text-ink'}`}
               >
                 {seat ?? '--'}
               </span>
               {changed ? (
-                <span className="block text-[0.65rem] font-semibold text-blue-dark">changed</span>
+                <span className="block text-[0.65rem] font-semibold text-blue-soft">changed</span>
               ) : null}
             </span>
           </button>

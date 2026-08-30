@@ -25,7 +25,7 @@ export function TransactionDetails({
 
   return (
     <section aria-labelledby="transaction-heading" className="card p-6">
-      <h2 id="transaction-heading" className="text-lg font-bold text-navy">
+      <h2 id="transaction-heading" className="text-lg font-bold text-ink">
         Transaction Details
       </h2>
 
@@ -43,8 +43,8 @@ export function TransactionDetails({
         <div className="border-t border-line pt-3" />
         <Row label="Total Tax" value={formatUsd(totalTaxCents)} />
         <div className="flex items-center justify-between gap-4 pt-1">
-          <dt className="text-sm font-semibold text-navy">Grand Total</dt>
-          <dd className="text-[1.65rem] font-extrabold leading-none text-blue">
+          <dt className="text-sm font-semibold text-ink">Grand Total</dt>
+          <dd className="text-[1.65rem] font-extrabold leading-none text-blue-soft">
             {formatUsd(grandTotalCents)}
           </dd>
         </div>
@@ -57,7 +57,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   return (
     <div className="flex items-baseline justify-between gap-4">
       <dt className="text-ink-muted">{label}</dt>
-      <dd className={strong ? 'font-bold text-navy' : 'font-semibold text-navy'}>{value}</dd>
+      <dd className={strong ? 'font-bold text-ink' : 'font-semibold text-ink'}>{value}</dd>
     </div>
   )
 }

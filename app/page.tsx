@@ -29,10 +29,10 @@ export default function HomePage() {
     <div className="space-y-14">
       <section className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-soft">
             Fly the bright side
           </p>
-          <h1 className="mt-3 text-[3.4rem] font-extrabold leading-[1.03] tracking-tight text-navy">
+          <h1 className="mt-3 text-[3.4rem] font-extrabold leading-[1.03] tracking-tight text-ink">
             Every seat,
             <br />
             in plain sight.
@@ -57,26 +57,26 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section aria-labelledby="search-heading" className="card p-7 shadow-[0_18px_50px_-38px_rgba(11,11,43,0.6)]">
-        <h2 id="search-heading" className="mb-5 text-xl font-bold text-navy">
+      <section aria-labelledby="search-heading" className="card p-7 shadow-[0_22px_54px_-38px_rgba(0,0,0,0.9)]">
+        <h2 id="search-heading" className="mb-5 text-xl font-bold text-ink">
           Search flights
         </h2>
         <SearchForm />
       </section>
 
       <section aria-labelledby="destinations-heading">
-        <h2 id="destinations-heading" className="text-2xl font-bold text-navy">
+        <h2 id="destinations-heading" className="text-2xl font-bold text-ink">
           Where NovaAir flies
         </h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {DESTINATIONS.map((destination) => (
             <article key={destination.code} className="card p-6">
               <div className="flex items-baseline justify-between gap-3">
-                <h3 className="text-lg font-bold text-navy">{destination.city}</h3>
+                <h3 className="text-lg font-bold text-ink">{destination.city}</h3>
                 <span className="text-sm font-semibold text-ink-muted">{destination.code}</span>
               </div>
               <p className="mt-1.5 text-sm text-ink-muted">{destination.note}</p>
-              <p className="mt-5 text-2xl font-extrabold text-blue">
+              <p className="mt-5 text-2xl font-extrabold text-blue-soft">
                 ${destination.from}
                 <span className="ml-1.5 text-xs font-medium text-ink-muted">one way</span>
               </p>
@@ -86,14 +86,14 @@ export default function HomePage() {
       </section>
 
       <section aria-labelledby="promises-heading">
-        <h2 id="promises-heading" className="text-2xl font-bold text-navy">
+        <h2 id="promises-heading" className="text-2xl font-bold text-ink">
           What every NovaAir fare includes
         </h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {PROMISES.map((promise) => (
             <article key={promise.title} className="rounded-[20px] bg-blue-tint p-6">
-              <h3 className="text-lg font-bold text-navy">{promise.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-navy-soft">{promise.body}</p>
+              <h3 className="text-lg font-bold text-ink">{promise.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{promise.body}</p>
             </article>
           ))}
         </div>

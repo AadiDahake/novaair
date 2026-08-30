@@ -10,7 +10,7 @@ const CATEGORY_ORDER = ['Seats', 'Bags', 'At the airport', 'Your booking'] as co
 export default function HelpPage() {
   return (
     <div>
-      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">
+      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">
         Help center
       </h1>
       <p className="mt-4 max-w-xl text-[0.98rem] leading-relaxed text-ink-muted">
@@ -35,13 +35,13 @@ export default function HelpPage() {
                   <li key={article.slug}>
                     <Link
                       href={`/help/${article.slug}`}
-                      className="card flex h-full flex-col p-6 transition-colors hover:border-[#c9cbe0] hover:bg-[#fbfbff]"
+                      className="card flex h-full flex-col p-6 transition-colors hover:border-line-hover hover:bg-surface-raised"
                     >
-                      <h3 className="text-lg font-bold text-navy">{article.title}</h3>
+                      <h3 className="text-lg font-bold text-ink">{article.title}</h3>
                       <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-muted">
                         {article.summary}
                       </p>
-                      <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-blue">
+                      <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-soft">
                         Read
                         <ArrowRightIcon size={15} />
                       </span>

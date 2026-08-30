@@ -29,7 +29,7 @@ const QUOTES = [
 export default function TestimonialsPage() {
   return (
     <div>
-      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-navy">
+      <h1 className="text-[3rem] font-extrabold leading-none tracking-tight text-ink">
         Testimonials
       </h1>
       <p className="mt-4 max-w-xl text-[0.98rem] leading-relaxed text-ink-muted">
@@ -39,18 +39,18 @@ export default function TestimonialsPage() {
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
         {QUOTES.map((entry) => (
           <figure key={entry.name} className="card p-7">
-            <blockquote className="text-[1.05rem] font-medium leading-relaxed text-navy">
+            <blockquote className="text-[1.05rem] font-medium leading-relaxed text-ink">
               &ldquo;{entry.quote}&rdquo;
             </blockquote>
             <figcaption className="mt-5 flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-tint text-sm font-bold text-blue"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-tint text-sm font-bold text-blue-soft"
               >
                 {entry.name.slice(0, 1)}
               </span>
               <span>
-                <span className="block text-sm font-bold text-navy">{entry.name}</span>
+                <span className="block text-sm font-bold text-ink">{entry.name}</span>
                 <span className="block text-xs text-ink-muted">{entry.route}</span>
               </span>
             </figcaption>
