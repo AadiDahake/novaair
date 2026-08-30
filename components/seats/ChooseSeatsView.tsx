@@ -14,6 +14,10 @@ import { ArrowLeftIcon, WarningIcon } from '../ui/icons'
 import { PlaneNose } from '../ui/PlaneIllustration'
 import { PassengerSelector } from './PassengerSelector'
 import { SeatButton } from './SeatButton'
+import {
+  SeatPartyFinder,
+  type SeatPartySelection,
+} from './SeatPartyFinder'
 import { SeatLegend } from './SeatLegend'
 import { TransactionDetails } from './TransactionDetails'
 import { YourFlightCard } from './YourFlightCard'
@@ -33,6 +37,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     Object.fromEntries(passengers.map((passenger) => [passenger.id, passenger.seatId])),
   )
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [partySelection, setPartySelection] = useState<SeatPartySelection | null>(null)
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
   const [confirming, setConfirming] = useState(false)
 
@@ -151,6 +156,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     }
 
     interactions.current += 1
+    setPartySelection(null)
     setStaged((current) => ({ ...current, [passenger.id]: seat.id }))
     setNotice(null)
     capture('seat_selected', {
@@ -201,8 +207,72 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
     })
   }
 
+  function onPartySelect(selection: SeatPartySelection) {
+    interactions.current += 1
+
+    const selectedPassengerIds = new Set(
+      selection.assignments.map((assignment) => assignment.passengerId),
+    )
+    const selectedSeatIds = new Set(
+      selection.assignments.map((assignment) => assignment.seatId),
+    )
+    const preservedPassengerBySeat = new Map<string, string>()
+
+    for (const passenger of passengers) {
+      if (
+        selectedPassengerIds.has(passenger.id) &&
+        passenger.seatId &&
+        selectedSeatIds.has(passenger.seatId)
+      ) {
+        preservedPassengerBySeat.set(passenger.seatId, passenger.id)
+      }
+    }
+
+    const remainingPassengerIds = selection.assignments
+      .map((assignment) => assignment.passengerId)
+      .filter(
+        (passengerId) =>
+          ![...preservedPassengerBySeat.values()].includes(passengerId),
+      )
+
+    const assignments = selection.assignments.map((assignment) => ({
+      passengerId:
+        preservedPassengerBySeat.get(assignment.seatId) ??
+        remainingPassengerIds.shift() ??
+        assignment.passengerId,
+      seatId: assignment.seatId,
+    }))
+    const nextSelection = { ...selection, assignments }
+
+    setPartySelection(nextSelection)
+    setStaged((current) => {
+      const next = { ...current }
+      for (const assignment of assignments) {
+        next[assignment.passengerId] = assignment.seatId
+      }
+      return next
+    })
+    setNotice({
+      kind: 'success',
+      text: `${assignments.map((assignment) => assignment.seatId).join(', ')} are staged together. Confirm seats to save them.`,
+    })
+  }
+
+  function captureConfirmation() {
+    capture('seat_assignment_confirmed', {
+      seats: stagedList,
+      party_size: passengers.length,
+      same_row: seatsAreSameRow(stagedList),
+      contiguous: seatsAreContiguous(stagedList),
+      additional_cost: seatFeeCents,
+      interactions: interactions.current,
+      elapsed_ms: Date.now() - openedAt.current,
+    })
+  }
+
   /**
-   * Write the staged choices, one passenger at a time.
+   * Write the staged choices atomically when they came from Find seats together, or one passenger
+   * at a time for individual seat selection.
    *
    * A passenger can only move into a seat that is free in the store. When one passenger is moving
    * out of the seat another passenger wants, the first move has to be written first, so the writes
@@ -216,6 +286,42 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
 
     setConfirming(true)
     setNotice(null)
+
+    if (partySelection) {
+      try {
+        const response = await fetch(
+          `/api/seats/${encodeURIComponent(flight.id)}/party`,
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ assignments: partySelection.assignments }),
+          },
+        )
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { message?: string }
+          setNotice({
+            kind: 'error',
+            text:
+              payload.message ??
+              'We could not save these seats together. Everyone has kept their previous seat.',
+          })
+          return
+        }
+
+        captureConfirmation()
+        setNotice({ kind: 'success', text: 'Your seats are saved.' })
+        router.refresh()
+      } catch {
+        setNotice({
+          kind: 'error',
+          text: 'Something went wrong. Everyone has kept their previous seat. Please try again.',
+        })
+      } finally {
+        setConfirming(false)
+      }
+      return
+    }
 
     const occupancy = new Map<string, string>()
     for (const passenger of passengers) {
@@ -269,16 +375,7 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
         }
       }
 
-      capture('seat_assignment_confirmed', {
-        seats: stagedList,
-        party_size: passengers.length,
-        same_row: seatsAreSameRow(stagedList),
-        contiguous: seatsAreContiguous(stagedList),
-        additional_cost: seatFeeCents,
-        interactions: interactions.current,
-        elapsed_ms: Date.now() - openedAt.current,
-      })
-
+      captureConfirmation()
       setNotice({ kind: 'success', text: 'Your seats are saved.' })
       router.refresh()
     } catch {
@@ -293,6 +390,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
       <div className="space-y-6">
         <Link
           href={`/trips/${reservation.code}`}
+          aria-label="Back to Manage Trip"
+          data-testid="back-to-manage-trip"
           className="pill pill-light px-6 py-3 text-[0.9rem]"
         >
           <ArrowLeftIcon size={16} />
@@ -449,6 +548,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
             type="button"
             onClick={confirm}
             disabled={!hasChanges || confirming}
+            aria-label="Confirm seats"
+            data-testid="confirm-seats"
             className="pill pill-primary mt-3 w-full px-7 py-4 text-[1rem]"
           >
             {confirming ? 'Saving...' : 'Confirm seats'}
@@ -457,6 +558,12 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
       </section>
 
       <aside className="space-y-6">
+        <SeatPartyFinder
+          flightId={flight.id}
+          passengers={passengers}
+          onSelect={onPartySelect}
+        />
+
         <section aria-labelledby="passenger-selector-heading" className="card p-6">
           <h2 id="passenger-selector-heading" className="text-lg font-bold text-ink">
             Passengers
@@ -486,6 +593,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
           </ul>
           <Link
             href="/help/how-do-i-change-my-seat"
+            aria-label="Read the seat help"
+            data-testid="read-seat-help"
             className="pill pill-outline mt-5 px-5 py-2.5 text-[0.82rem]"
           >
             Read the seat help

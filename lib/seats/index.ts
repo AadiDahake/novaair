@@ -19,16 +19,40 @@ import type {
 } from './types'
 
 /**
- * The server-side seat primitives.
+ * The server-side seat primitives and seat-party compositions.
  *
- * Each one does a single job. Nothing here yet searches for seats together, ranks blocks of seats,
- * or moves more than one passenger, so a caller that wants a party in one row reads the map and
- * assigns each passenger separately, which is what the site's own UI does.
+ * The single-passenger primitives each do one job. The party capabilities compose those primitives
+ * to find contiguous seats and apply every assignment together.
  *
- * A capability that composes these into a party search and a party apply belongs in this module.
- * `AGENTS.md`, under "Adding seat-party capabilities", says what it must keep true, and
- * `tests/seat-party.test.ts` enforces it.
+ * `AGENTS.md`, under "Adding seat-party capabilities", describes the invariants, and
+ * `tests/seat-party.test.ts` enforces them.
  */
+
+export interface SeatPartyOption {
+  row: number
+  seatIds: string[]
+  extraCostCents: number
+  totalPriceCents: number
+}
+
+export interface SeatPartyAssignment {
+  passengerId: string
+  seatId: string
+}
+
+type SuccessfulAssignment = Extract<AssignSeatResult, { ok: true }>
+
+export type AssignSeatsForPartyResult =
+  | {
+      ok: true
+      assignments: SuccessfulAssignment[]
+      totalPriceCents: number
+    }
+  | {
+      ok: false
+      reason: string
+      message: string
+    }
 
 function effectiveState(baseState: Seat['baseState'], occupied: boolean): SeatState {
   if (baseState === 'blocked') return 'blocked'
@@ -144,7 +168,11 @@ export async function assignSeat(passengerId: string, seatId: string): Promise<A
 
   const seat = await repository.getSeatDefinition(reservation.flightId, normalizedSeatId)
   if (!seat) {
-    return { ok: false, reason: 'seat_not_found', message: `Seat ${normalizedSeatId} is not on this aircraft.` }
+    return {
+      ok: false,
+      reason: 'seat_not_found',
+      message: `Seat ${normalizedSeatId} is not on this aircraft.`,
+    }
   }
 
   if (seat.baseState === 'blocked') {
@@ -184,6 +212,372 @@ export async function assignSeat(passengerId: string, seatId: string): Promise<A
     seatId: seat.id,
     previousSeatId: result.previousSeatId,
     priceCents: seat.priceCents,
+  }
+}
+
+/**
+ * Find contiguous same-row blocks for a party.
+ *
+ * A party's current seats may be included in a block. Seats held by anybody outside the party,
+ * booked seats and seats held for accessible seating are never offered.
+ */
+export async function findSeatsForParty(
+  flightId: string,
+  passengerIds: string[],
+): Promise<SeatPartyOption[]> {
+  const uniquePassengerIds = [...new Set(passengerIds)]
+  if (
+    uniquePassengerIds.length === 0 ||
+    uniquePassengerIds.length !== passengerIds.length ||
+    uniquePassengerIds.length > LEFT_COLUMNS.length
+  ) {
+    return []
+  }
+
+  const [seatMap, restrictions] = await Promise.all([
+    getSeatMap(flightId),
+    Promise.all(uniquePassengerIds.map((passengerId) => getPassengerRestrictions(passengerId))),
+  ])
+  if (!seatMap || restrictions.some((restriction) => restriction === null)) return []
+
+  const passengerRestrictions = restrictions.filter(
+    (restriction): restriction is PassengerRestrictions => restriction !== null,
+  )
+  const hasAdult = passengerRestrictions.some((restriction) => restriction.type === 'adult')
+  if (
+    passengerRestrictions.some((restriction) => restriction.mustSitWithAdult) &&
+    !hasAdult
+  ) {
+    return []
+  }
+
+  const partyIds = new Set(uniquePassengerIds)
+  const partyCanUseExitRows = passengerRestrictions.every(
+    (restriction) => restriction.canUseExitRow,
+  )
+  const options: SeatPartyOption[] = []
+
+  for (const row of seatMap.rows) {
+    if (row.isExitRow && !partyCanUseExitRows) continue
+
+    for (const side of [row.left, row.right]) {
+      for (let start = 0; start <= side.length - uniquePassengerIds.length; start += 1) {
+        const block = side.slice(start, start + uniquePassengerIds.length)
+        const canUseBlock = block.every(
+          (seat) =>
+            seat.baseState === 'available' &&
+            (!seat.occupantPassengerId || partyIds.has(seat.occupantPassengerId)),
+        )
+        if (!canUseBlock) continue
+
+        const prices = await Promise.all(
+          block.map((seat) => calculateSeatPrice(flightId, seat.id)),
+        )
+        if (prices.some((price) => price === null)) continue
+
+        const extraCostCents = prices.reduce<number>(
+          (total, price) => total + (price ?? 0),
+          0,
+        )
+
+        options.push({
+          row: row.row,
+          seatIds: block.map((seat) => seat.id),
+          extraCostCents,
+          totalPriceCents: extraCostCents,
+        })
+      }
+    }
+  }
+
+  return options.sort((left, right) => left.extraCostCents - right.extraCostCents)
+}
+
+/**
+ * Move a party into one contiguous block.
+ *
+ * Every assignment is validated before the first write. Writes are ordered so occupied party seats
+ * are vacated first. If a write fails, completed writes are reversed before the failure is returned.
+ */
+export function assignSeatsForParty(
+  passengerIds: string[],
+  seatIds: string[],
+): Promise<AssignSeatsForPartyResult>
+export function assignSeatsForParty(
+  flightId: string,
+  assignments: SeatPartyAssignment[],
+): Promise<AssignSeatsForPartyResult>
+export function assignSeatsForParty(
+  flightId: string,
+  passengerIds: string[],
+  seatIds: string[],
+): Promise<AssignSeatsForPartyResult>
+export async function assignSeatsForParty(
+  flightIdOrPassengerIds: string | string[],
+  assignmentsOrPassengerIds: SeatPartyAssignment[] | string[],
+  requestedSeatIds?: string[],
+): Promise<AssignSeatsForPartyResult> {
+  const passengerAndSeatIdsOnly = Array.isArray(flightIdOrPassengerIds)
+  let flightId = passengerAndSeatIdsOnly ? '' : flightIdOrPassengerIds
+
+  const assignments: SeatPartyAssignment[] = passengerAndSeatIdsOnly
+    ? flightIdOrPassengerIds.map((passengerId, index) => ({
+        passengerId,
+        seatId:
+          typeof assignmentsOrPassengerIds[index] === 'string'
+            ? assignmentsOrPassengerIds[index]
+            : '',
+      }))
+    : requestedSeatIds === undefined
+      ? assignmentsOrPassengerIds.map((assignment) =>
+          typeof assignment === 'string'
+            ? { passengerId: assignment, seatId: '' }
+            : assignment,
+        )
+      : assignmentsOrPassengerIds.map((passengerId, index) => ({
+          passengerId: typeof passengerId === 'string' ? passengerId : passengerId.passengerId,
+          seatId: requestedSeatIds[index] ?? '',
+        }))
+
+  const suppliedSeatIds = passengerAndSeatIdsOnly
+    ? assignmentsOrPassengerIds
+    : requestedSeatIds
+
+  if (
+    assignments.length === 0 ||
+    (suppliedSeatIds !== undefined && suppliedSeatIds.length !== assignments.length)
+  ) {
+    return {
+      ok: false,
+      reason: 'assignments_required',
+      message: 'Choose passengers and seats before saving.',
+    }
+  }
+
+  if (
+    assignments.some(
+      (assignment) =>
+        typeof assignment.passengerId !== 'string' ||
+        assignment.passengerId.trim().length === 0 ||
+        typeof assignment.seatId !== 'string' ||
+        assignment.seatId.trim().length === 0,
+    )
+  ) {
+    return {
+      ok: false,
+      reason: 'assignments_required',
+      message: 'Choose one seat for each passenger before saving.',
+    }
+  }
+
+  const normalizedAssignments = assignments.map((assignment) => ({
+    passengerId: assignment.passengerId.trim(),
+    seatId: assignment.seatId.trim().toUpperCase(),
+  }))
+  const passengerIds = normalizedAssignments.map((assignment) => assignment.passengerId)
+  const seatIds = normalizedAssignments.map((assignment) => assignment.seatId)
+
+  if (new Set(passengerIds).size !== passengerIds.length) {
+    return {
+      ok: false,
+      reason: 'duplicate_passenger',
+      message: 'Choose one seat for each passenger.',
+    }
+  }
+  if (new Set(seatIds).size !== seatIds.length) {
+    return {
+      ok: false,
+      reason: 'duplicate_seat',
+      message: 'Choose a different seat for each passenger.',
+    }
+  }
+
+  if (passengerAndSeatIdsOnly) {
+    const repository = getRepository()
+    const passenger = await repository.getPassenger(passengerIds[0] ?? '')
+    if (!passenger) {
+      return {
+        ok: false,
+        reason: 'passenger_not_found',
+        message: 'We cannot find one of those passengers.',
+      }
+    }
+
+    const reservation = await repository.getReservationByCode(passenger.reservationCode)
+    if (!reservation) {
+      return {
+        ok: false,
+        reason: 'passenger_not_found',
+        message: 'We cannot find one of those passengers.',
+      }
+    }
+
+    flightId = reservation.flightId
+  }
+
+  const [seatMap, restrictions] = await Promise.all([
+    getSeatMap(flightId),
+    Promise.all(passengerIds.map((passengerId) => getPassengerRestrictions(passengerId))),
+  ])
+  if (!seatMap) {
+    return {
+      ok: false,
+      reason: 'flight_not_found',
+      message: 'We cannot find that flight.',
+    }
+  }
+  if (restrictions.some((restriction) => restriction === null)) {
+    return {
+      ok: false,
+      reason: 'passenger_not_found',
+      message: 'We cannot find one of those passengers.',
+    }
+  }
+
+  const seatById = new Map<string, Seat>()
+  for (const row of seatMap.rows) {
+    for (const seat of [...row.left, ...row.right]) seatById.set(seat.id, seat)
+  }
+
+  const targetSeats = seatIds.map((seatId) => seatById.get(seatId))
+  if (targetSeats.some((seat) => seat === undefined)) {
+    const missingSeatId = seatIds.find((seatId) => !seatById.has(seatId)) ?? ''
+    return {
+      ok: false,
+      reason: 'seat_not_found',
+      message: `Seat ${missingSeatId} is not on this aircraft.`,
+    }
+  }
+
+  const seats = targetSeats.filter((seat): seat is Seat => seat !== undefined)
+  const row = seats[0]?.row
+  const side =
+    seats[0] && LEFT_COLUMNS.includes(seats[0].column)
+      ? LEFT_COLUMNS
+      : RIGHT_COLUMNS
+  const columnIndexes = seats
+    .map((seat) => side.indexOf(seat.column))
+    .sort((left, right) => left - right)
+  const contiguous =
+    seats.every((seat) => seat.row === row && side.includes(seat.column)) &&
+    columnIndexes.every(
+      (columnIndex, index) =>
+        index === 0 || columnIndex === columnIndexes[index - 1]! + 1,
+    )
+
+  if (!contiguous) {
+    return {
+      ok: false,
+      reason: 'seats_not_together',
+      message: 'Choose consecutive seats in one row on the same side of the aisle.',
+    }
+  }
+
+  const partyIds = new Set(passengerIds)
+  for (const seat of seats) {
+    if (seat.baseState === 'blocked') {
+      return {
+        ok: false,
+        reason: 'seat_blocked',
+        message: `Seat ${seat.id} is held for a customer who needs accessible seating. Please pick another seat.`,
+      }
+    }
+    if (
+      seat.baseState === 'booked' ||
+      (seat.occupantPassengerId && !partyIds.has(seat.occupantPassengerId))
+    ) {
+      return {
+        ok: false,
+        reason: 'seat_booked',
+        message: `Seat ${seat.id} is already taken. Please pick another seat.`,
+      }
+    }
+  }
+
+  const passengerRestrictions = restrictions.filter(
+    (restriction): restriction is PassengerRestrictions => restriction !== null,
+  )
+  const hasAdult = passengerRestrictions.some((restriction) => restriction.type === 'adult')
+  if (
+    passengerRestrictions.some((restriction) => restriction.mustSitWithAdult) &&
+    !hasAdult
+  ) {
+    return {
+      ok: false,
+      reason: 'adult_required',
+      message: 'A child under 13 must sit with an adult on the same booking.',
+    }
+  }
+
+  for (let index = 0; index < normalizedAssignments.length; index += 1) {
+    const seat = seats[index]
+    const restriction = passengerRestrictions[index]
+    if (seat?.isExitRow && restriction && !restriction.canUseExitRow) {
+      return {
+        ok: false,
+        reason: 'exit_row_child',
+        message: `Seat ${seat.id} is in an exit row. Exit rows are for adults only.`,
+      }
+    }
+  }
+
+  const occupantBySeat = new Map<string, string>()
+  const currentSeatByPassenger = new Map<string, string>()
+  for (const seat of seatById.values()) {
+    if (!seat.occupantPassengerId) continue
+    occupantBySeat.set(seat.id, seat.occupantPassengerId)
+    currentSeatByPassenger.set(seat.occupantPassengerId, seat.id)
+  }
+
+  const remaining = [...normalizedAssignments]
+  const ordered: SeatPartyAssignment[] = []
+  while (remaining.length > 0) {
+    const movableIndex = remaining.findIndex((assignment) => {
+      const occupant = occupantBySeat.get(assignment.seatId)
+      return !occupant || occupant === assignment.passengerId
+    })
+    if (movableIndex === -1) {
+      return {
+        ok: false,
+        reason: 'assignment_cycle',
+        message: 'Those seats cannot be swapped safely. Please choose another block.',
+      }
+    }
+
+    const [assignment] = remaining.splice(movableIndex, 1)
+    if (!assignment) break
+
+    const currentSeatId = currentSeatByPassenger.get(assignment.passengerId)
+    if (currentSeatId) occupantBySeat.delete(currentSeatId)
+    occupantBySeat.set(assignment.seatId, assignment.passengerId)
+    currentSeatByPassenger.set(assignment.passengerId, assignment.seatId)
+    ordered.push(assignment)
+  }
+
+  const completed: SuccessfulAssignment[] = []
+  for (const assignment of ordered) {
+    const result = await assignSeat(assignment.passengerId, assignment.seatId)
+    if (!result.ok) {
+      for (const completedAssignment of [...completed].reverse()) {
+        if (completedAssignment.previousSeatId) {
+          await assignSeat(
+            completedAssignment.passengerId,
+            completedAssignment.previousSeatId,
+          )
+        }
+      }
+      return result
+    }
+    completed.push(result)
+  }
+
+  return {
+    ok: true,
+    assignments: completed,
+    totalPriceCents: completed.reduce(
+      (total, assignment) => total + assignment.priceCents,
+      0,
+    ),
   }
 }
 
