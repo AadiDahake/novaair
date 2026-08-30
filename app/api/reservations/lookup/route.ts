@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/reservations/lookup - find one reservation.
- * Body: { "code": "NVA7K2", "lastName": "Dahake" }
+ * Body: { "code": "NVA7K2", "lastName": "Altman" }
  */
 export async function POST(request: Request) {
   let body: unknown

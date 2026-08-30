@@ -49,8 +49,8 @@ describe('seatAriaLabel', () => {
 
   it('names a seat one of the party holds', () => {
     expect(
-      seatAriaLabel(seat({ id: '12A', row: 12, state: 'occupied', occupantPassengerId: 'PAX-1' }), 'Aadi'),
-    ).toBe('Seat 12A, chosen for Aadi')
+      seatAriaLabel(seat({ id: '12A', row: 12, state: 'occupied', occupantPassengerId: 'PAX-1' }), 'Sam'),
+    ).toBe('Seat 12A, chosen for Sam')
   })
 })
 

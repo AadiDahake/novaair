@@ -23,14 +23,20 @@ export const DEMO_FLIGHT: Flight = {
   fareUsd: 214,
 }
 
-export const DEMO_LAST_NAME = 'Dahake'
+/** The name a customer types to find the booking. It is the lead passenger's last name. */
+export const DEMO_LAST_NAME = 'Altman'
 
+/**
+ * The party. A passenger carries their own last name, because a party does not have to share one,
+ * and the third passenger has no last name at all. Anything that prints a name goes through
+ * `passengerFullName` in `lib/format.ts`, so a missing last name never leaves a hanging space.
+ */
 export const DEMO_PASSENGERS: Passenger[] = [
   {
     id: 'PAX-1',
     reservationCode: RESERVATION_CODE,
     index: 0,
-    firstName: 'Aadi',
+    firstName: 'Sam',
     lastName: DEMO_LAST_NAME,
     type: 'adult',
     age: 38,
@@ -40,8 +46,8 @@ export const DEMO_PASSENGERS: Passenger[] = [
     id: 'PAX-2',
     reservationCode: RESERVATION_CODE,
     index: 1,
-    firstName: 'Kiran',
-    lastName: DEMO_LAST_NAME,
+    firstName: 'Elon',
+    lastName: 'Musk',
     type: 'child',
     age: 9,
     seatId: DEMO_START_SEATS[1],
@@ -50,8 +56,8 @@ export const DEMO_PASSENGERS: Passenger[] = [
     id: 'PAX-3',
     reservationCode: RESERVATION_CODE,
     index: 2,
-    firstName: 'Mira',
-    lastName: DEMO_LAST_NAME,
+    firstName: 'Zuck',
+    lastName: '',
     type: 'child',
     age: 6,
     seatId: DEMO_START_SEATS[2],
