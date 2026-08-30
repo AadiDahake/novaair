@@ -35,9 +35,9 @@ The one booking is:
 | Field | Value |
 | --- | --- |
 | Confirmation code | `NVA7K2` |
-| Last name | `Altman` |
+| Last name | `Musk` |
 | Flight | NA 214, SFO to JFK, 19 September 2026 |
-| Party | Sam Altman (adult) 12A, Elon Musk (child, 9) 18C, Zuck (child, 6) 24F |
+| Party | Elon Musk (adult) 12A, Sam Altman (child, 9) 18C, Zuck (child, 6) 24F |
 
 `npm run db:reset-demo` puts those seats back.
 

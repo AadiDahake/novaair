@@ -8,7 +8,7 @@ beforeEach(async () => {
 
 describe('getReservation', () => {
   it('finds the demo booking by its code and last name', async () => {
-    const reservation = await getReservation('NVA7K2', 'Altman')
+    const reservation = await getReservation('NVA7K2', 'Musk')
     expect(reservation?.code).toBe('NVA7K2')
     expect(reservation?.flight.flightNumber).toBe('NA 214')
     expect(reservation?.flight.originCode).toBe('SFO')
@@ -17,18 +17,18 @@ describe('getReservation', () => {
   })
 
   it('returns the party in order with their seats', async () => {
-    const reservation = await getReservation('NVA7K2', 'Altman')
+    const reservation = await getReservation('NVA7K2', 'Musk')
     expect(
       reservation?.passengers.map((passenger) => [passenger.index, passenger.firstName, passenger.type, passenger.seatId]),
     ).toEqual([
-      [0, 'Sam', 'adult', '12A'],
-      [1, 'Elon', 'child', '18C'],
+      [0, 'Elon', 'adult', '12A'],
+      [1, 'Sam', 'child', '18C'],
       [2, 'Zuck', 'child', '24F'],
     ])
   })
 
   it('ignores the case and the padding of the code and the name', async () => {
-    expect(await getReservation('  nva7k2 ', ' altman ')).not.toBeNull()
+    expect(await getReservation('  nva7k2 ', ' musk ')).not.toBeNull()
   })
 
   it('refuses the wrong last name', async () => {
@@ -36,13 +36,13 @@ describe('getReservation', () => {
   })
 
   it('refuses a code that does not exist', async () => {
-    expect(await getReservation('ZZZZZZ', 'Altman')).toBeNull()
+    expect(await getReservation('ZZZZZZ', 'Musk')).toBeNull()
   })
 })
 
 describe('the whole seat change flow', () => {
   it('moves the party to 21A, 21B and 21C one passenger at a time and keeps them there', async () => {
-    const before = await getReservation('NVA7K2', 'Altman')
+    const before = await getReservation('NVA7K2', 'Musk')
     expect(before?.passengers.map((passenger) => passenger.seatId)).toEqual(['12A', '18C', '24F'])
 
     expect((await assignSeat('PAX-1', '21A')).ok).toBe(true)
