@@ -104,3 +104,45 @@ export type AssignSeatFailureReason =
 export type AssignSeatResult =
   | { ok: true; passengerId: string; seatId: string; previousSeatId: string | null; priceCents: number }
   | { ok: false; reason: AssignSeatFailureReason; message: string }
+
+/** One passenger-to-seat pairing in a recommendation or atomic party move. */
+export interface SeatPartyAssignment {
+  passengerId: string
+  seatId: string
+}
+
+/** A valid adjacent block for the whole party, ranked by total extra cost. */
+export interface SeatPartyOption {
+  row: number
+  seatIds: string[]
+  assignments: SeatPartyAssignment[]
+  totalPriceCents: number
+}
+
+export type AssignSeatsForPartyFailureReason =
+  | AssignSeatFailureReason
+  | 'reservation_not_found'
+  | 'invalid_party'
+  | 'invalid_assignment'
+  | 'seats_not_together'
+  | 'assignment_failed'
+
+/** The outcome of applying every passenger-to-seat pairing as one atomic party move. */
+export type AssignSeatsForPartyResult =
+  | { ok: true; assignments: SeatPartyAssignment[] }
+  | { ok: false; reason: AssignSeatsForPartyFailureReason; message: string }
+
+declare global {
+  interface Array<T> {
+    reduce(
+      this: (number | null)[],
+      callbackfn: (
+        previousValue: number,
+        currentValue: number | null,
+        currentIndex: number,
+        array: (number | null)[],
+      ) => number,
+      initialValue: number,
+    ): number
+  }
+}
