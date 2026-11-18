@@ -11,16 +11,12 @@ Nothing on this site is a real airline, a real flight or a real booking.
 - Find a booking by confirmation code and last name.
 - Manage Trip: itinerary, passengers, and Seats, Bags and Check-in sections.
 - Choose Seats: a 30 row, 3-3 seat map with paid extra-legroom rows, exit rows, and one seat held
-  for accessible seating. One passenger moves at a time.
+  for accessible seating. Customers can move passengers individually or find three adjacent seats
+  for a family.
+- Find three seats together: eligible same-row blocks on one side of the aisle are ranked by total
+  extra cost. Choosing a block stages all three passengers, and confirming moves the whole party
+  or leaves every passenger in their previous seat if the assignment fails.
 - A help center of six articles.
-
-## What it does not do yet
-
-NovaAir has no way to find seats together and no way to move a party in one action. A customer
-reads the map and moves each passenger by hand. That is where the product starts, and it is the
-gap the Patchlet demo is about, rather than a rule: an approved change may add a seat-party
-capability. `AGENTS.md`, under "Adding seat-party capabilities", says where such code belongs, and
-`tests/seat-party.test.ts` holds it to its invariants.
 
 ## Run it
 
@@ -48,7 +44,7 @@ The one booking is:
 ```bash
 npm run typecheck   # tsc over the app and over the end-to-end tests
 npm run lint
-npm test            # vitest: seed properties, primitives, reservation flow
+npm test            # vitest: seed, primitives, seat-party, reservation and help contracts
 npm run build
 npm run e2e         # playwright: the whole seat change, end to end
 ```
@@ -123,7 +119,7 @@ still runs, on the in-memory store, and its data resets when the instance recycl
 
 | File | What it holds |
 | --- | --- |
-| `docs/api.md` | The primitives and the route handlers over them. |
+| `docs/api.md` | The seat primitives, seat-party compositions and route handlers over them. |
 | `docs/analytics.md` | Every event name and property NovaAir sends. |
 | `docs/design-research.md` | What was read on real airline sites, and what NovaAir borrows. |
 | `docs/screenshots/` | The site at 1440x900, and one PostHog replay of a seeded session. |
