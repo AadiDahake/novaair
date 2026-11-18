@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Wordmark } from '../brand/Logo'
 import { PhoneIcon, TicketIcon } from '../ui/icons'
+import { ThemeToggle } from './ThemeToggle'
 
 const LINKS = [
   { href: '/flights', label: 'Flights' },
@@ -15,7 +16,10 @@ const LINKS = [
 export function TopNav() {
   const pathname = usePathname() ?? '/'
   const activeLabel =
-    pathname === '/' || pathname.startsWith('/flights') || pathname.startsWith('/trips') || pathname.startsWith('/my-booking')
+    pathname === '/' ||
+    pathname.startsWith('/flights') ||
+    pathname.startsWith('/trips') ||
+    pathname.startsWith('/my-booking')
       ? 'Flights'
       : LINKS.find((link) => pathname.startsWith(link.href))?.label
 
@@ -48,6 +52,19 @@ export function TopNav() {
         </ul>
 
         <div className="flex items-center gap-2.5">
+          <div
+            role="group"
+            aria-labelledby="accessibility-and-appearance-label"
+            className="flex items-center gap-2.5"
+          >
+            <span
+              id="accessibility-and-appearance-label"
+              className="sr-only text-[0.75rem] font-medium text-ink-muted xl:not-sr-only xl:whitespace-nowrap"
+            >
+              Accessibility and appearance
+            </span>
+            <ThemeToggle />
+          </div>
           <a href="tel:18005550142" className="pill pill-outline px-4 py-2.5 text-[0.85rem]">
             <PhoneIcon />
             Call Us

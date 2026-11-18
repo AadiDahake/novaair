@@ -12,6 +12,19 @@ const poppins = Poppins({
   display: 'swap',
 })
 
+const themeInitializationScript = `
+try {
+  var preference = window.localStorage.getItem('novaair-theme');
+  if (preference === 'light' || preference === 'dark') {
+    document.documentElement.setAttribute('data-theme', preference);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+} catch (error) {
+  document.documentElement.removeAttribute('data-theme');
+}
+`
+
 export const metadata: Metadata = {
   title: {
     default: 'NovaAir',
@@ -29,8 +42,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en" className={poppins.variable} suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
         <a
           href="#main"
           className="pill pill-light sr-only px-5 py-2.5 focus:not-sr-only focus:absolute focus:left-6 focus:top-6 focus:z-50"

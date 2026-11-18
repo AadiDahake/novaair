@@ -12,6 +12,8 @@ Nothing on this site is a real airline, a real flight or a real booking.
 - Manage Trip: itinerary, passengers, and Seats, Bags and Check-in sections.
 - Choose Seats: a 30 row, 3-3 seat map with paid extra-legroom rows, exit rows, and one seat held
   for accessible seating. One passenger moves at a time.
+- Choose a System, Light or Dark appearance from the global Accessibility and appearance control.
+  The preference persists across visits, and System follows the visitor's operating system theme.
 - A help center of six articles.
 
 ## What it does not do yet
