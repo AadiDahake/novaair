@@ -14,15 +14,15 @@ export interface HelpArticle {
 /**
  * The NovaAir help center.
  *
- * These articles describe only what the site can actually do. NovaAir changes one seat for one
- * passenger at a time, so no article promises to move a group of passengers in one step.
+ * These articles describe only what the site can actually do. Customers can change seats manually
+ * or find and assign a block of three seats together for a three-person booking.
  */
 export const HELP_ARTICLES: HelpArticle[] = [
   {
     slug: 'how-do-i-change-my-seat',
     title: 'How do I change my seat?',
     category: 'Seats',
-    summary: 'Open your trip, go to Seats, and pick a new seat for each passenger.',
+    summary: 'Open your trip, go to Seats, and choose seats manually or find three seats together.',
     sections: [
       {
         heading: 'Change a seat online',
@@ -30,9 +30,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
           'Select My Booking in the top menu.',
           'Enter your confirmation code and the last name on the booking. Then select Find my booking.',
           'On the Manage Trip page, go to the Seats section and select Change seats.',
-          'The seat map opens. Select a passenger in the list on the right, then select a free seat on the map. The seat map moves that one passenger.',
-          'Repeat for each passenger you want to move. NovaAir changes seats one passenger at a time.',
+          'The seat map opens. To choose manually, select a passenger in the list on the right, then select a free seat on the map.',
+          'Repeat for each passenger you want to move.',
           'Select Confirm seats to save. Your new seats appear on the Manage Trip page.',
+        ],
+      },
+      {
+        heading: 'Find three seats together',
+        body: [
+          'For a booking with three passengers, select Find three seats together on the seat map.',
+          'NovaAir shows available blocks of three adjacent seats in one row on the same side of the aisle. Seats A, B and C are one block, and seats D, E and F are the other block.',
+          'Options are ordered by total extra cost, with the lowest cost first. The total includes the seat fee for all three passengers.',
+          'Select an option to choose one seat for each passenger. Review the seats and total in Transaction Details, then select Confirm seats to save all three seats together.',
+          'If no block of three is available, you can still choose seats manually.',
         ],
       },
       {
@@ -88,23 +98,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: 'traveling-with-children',
     title: 'Traveling with children',
     category: 'Seats',
-    summary: 'A child under 13 must sit next to an adult on the same booking.',
+    summary: 'Find three adjacent seats for your family, including an adult next to a child under 13.',
     sections: [
       {
         heading: 'Seating rule',
         body: [
           'A child under 13 years of age must sit next to an adult on the same booking.',
-          'Check the seat map before you travel. If your party is not seated together, move each passenger yourself.',
+          'Check the seat map before you travel. For a three-person booking, NovaAir can find available seats together that follow this rule.',
         ],
       },
       {
-        heading: 'How to move your party',
+        heading: 'Find three seats together',
         body: [
-          'NovaAir changes seats one passenger at a time.',
           'Open Manage Trip, go to Seats, and select Change seats.',
-          'Select the first passenger, then select a free seat. Select the next passenger, then select the next free seat. Repeat for every passenger.',
-          'Read the seat map carefully. Two free seats either side of the aisle are not seats together. Seats A, B and C are one block. Seats D, E and F are the other block. The aisle is between C and D.',
-          'Select Confirm seats when every passenger has the seat you want.',
+          'Select Find three seats together. NovaAir searches for three adjacent seats in one row on the same side of the aisle that are suitable for everyone in your party.',
+          'The available options are ordered by total extra cost, with the lowest cost first. Select an option to choose one seat for each passenger.',
+          'Review the seats and any fees in Transaction Details, then select Confirm seats to save all three seats together.',
+          'Two free seats either side of the aisle are not seats together. Seats A, B and C are one block. Seats D, E and F are the other block. The aisle is between C and D.',
+          'If no block of three is available, select each passenger and seat manually.',
         ],
       },
       {
@@ -112,6 +123,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         body: [
           'Rows 15 and 16 are exit rows. A passenger in an exit row must be an adult.',
           'A child cannot sit in an exit row. The seat map refuses the seat and tells you why.',
+          'The Find three seats together search does not offer an exit-row block when the party includes a child.',
         ],
       },
       {
