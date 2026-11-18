@@ -6,22 +6,19 @@ anything.
 
 ## The starting state
 
-NovaAir has the seat primitives but not their composition. No function, route, help article or
-control finds seats together, ranks blocks of seats, or moves more than one passenger in one
-action, so a customer moves each passenger by hand. That gap is the demo's starting point: it is
-the thing the product being demonstrated is asked to close.
+NovaAir has single-purpose seat primitives and a seat-party capability that composes them.
+Customers with a three-passenger booking can find three seats together, review the assignments and
+combined fee, and confirm the block in one atomic action. Manual seat selection remains available.
 
-It is a starting state, not a prohibition. An approved change may add a seat-party capability, and
-the next section says how. What the repository does guard against is drifting into one by
-accident: each primitive stays single-purpose, and a capability that composes them is a deliberate
-addition with its own tests and docs.
+The party search and apply live in `lib/seats/`, the flight-scoped route lives under
+`app/api/seats/[flightId]/`, and the customer control is in the seat map. The capability has its
+own contract tests and documentation.
 
-## Adding seat-party capabilities
+## Seat-party capabilities
 
-An approved change - a filed request, an accepted pull request - may add a capability that finds a
-block of seats for a travel party and moves the party in one action. It composes the existing
-primitives rather than reaching past them into the store: `getSeatMap`, `getAvailableSeats`,
-`getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat` and `getReservation`.
+The party capability composes the existing primitives: `getSeatMap`, `getAvailableSeats`,
+`getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat` and `getReservation`. Keep the
+primitives single-purpose and use the atomic repository boundary for a party apply.
 
 Where the pieces belong:
 
@@ -37,33 +34,29 @@ What it must keep true, whatever else it does:
   side of the aisle. A, B and C are one block, D, E and F are the other, and two seats either side
   of the aisle are not seats together.
 - **Free seats only.** Never a seat that is booked, never the seat held for accessible seating, and
-  never a seat a passenger outside the party holds.
+  never a seat a passenger outside the party holds. Seats already held by the party may be included.
 - **The passenger rules still hold.** No child in an exit row, and a passenger who must sit with an
-  adult is only offered a block that also seats an adult from their own party. Read both from
+  adult is only offered a block that seats them next to an adult from their own party. Read both from
   `getPassengerRestrictions` rather than restating them.
 - **Ranked by extra cost.** A block carries the sum of `calculateSeatPrice` over its seats, and the
   cheapest block comes first.
 - **One atomic apply.** The whole party lands or none of it does. A failed apply leaves every
   passenger on the seat they already had.
 
-`tests/seat-party.test.ts` is the contract on all of that. It skips cleanly while no such
-capability exists, and enforces every point above the moment `lib/seats/index.ts` exports
-`findSeatsForParty` or `assignSeatsForParty`. Use those two names: they are what the test looks
-for, and an export under another name is a capability the test cannot guard. The same test still
-asserts that the seven primitives are all exported and that nothing else appears beside them.
-
-A change that ships this also updates `docs/api.md`, and the help center in `lib/help/articles.ts`
-where its copy no longer describes the product.
+`tests/seat-party.test.ts` exercises these contracts for the exported `findSeatsForParty` and
+`assignSeatsForParty` compositions. It also checks the module's permitted exports, including the
+seven primitives. Keep the test and `docs/api.md` current when changing the capability, and update
+the help center in `lib/help/articles.ts` when its copy no longer describes the product.
 
 ## Layout
 
 | Path | What lives there |
 | --- | --- |
-| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, and the primitives in `index.ts`. |
-| `lib/repo/` | Storage. `types.ts` is the contract; `memory.ts` and `supabase.ts` implement it; `index.ts` picks one. |
+| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, primitives and party compositions in `index.ts`. |
+| `lib/repo/` | Storage. `types.ts` is the contract; `memory.ts` and `supabase.ts` implement it; `index.ts` picks one and provides the atomic party assignment boundary. |
 | `lib/analytics/` | The event contract and `capture`. PostHog itself starts in `instrumentation-client.ts`. |
 | `lib/help/articles.ts` | Every help article, as data. |
-| `app/api/` | Route handlers. Each one is a thin shell over one primitive. |
+| `app/api/` | Route handlers. Each one is a thin shell over a primitive or composition. |
 | `app/` | Pages. `trips/[code]` is Manage Trip; `trips/[code]/seats` is the seat map. |
 | `components/seats/` | The seat map UI. `ChooseSeatsView.tsx` owns the interaction and the events. |
 | `scripts/` | Migrate, seed and reset, in plain `pg`. Also the PostHog seeders and the verifier. |
@@ -73,13 +66,14 @@ where its copy no longer describes the product.
 
 `lib/seats/index.ts` exports seven primitives, documented in `docs/api.md`: `getSeatMap`,
 `getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
-`getReservation`, `getReservationByCode`. Today they are the whole of the module.
+`getReservation`, `getReservationByCode`. It also exports the separate party compositions
+`findSeatsForParty` and `assignSeatsForParty`.
 
 - `assignSeat` moves one passenger. It is atomic, because the store rejects a seat another
   passenger holds, and it is idempotent for the same passenger and seat.
-- Adding an export to this module changes the contract. `tests/seat-party.test.ts` fails until the
-  new name is one it knows, which is the moment to think about whether the export belongs and
-  whether it is really a primitive or a composition of them.
+- Adding an export to this module changes the contract. `tests/seat-party.test.ts` checks the
+  permitted names, so consider whether a new export belongs and whether it is really a primitive
+  or a composition of them.
 
 ## The analytics contract
 
@@ -159,9 +153,9 @@ NovaAir is dark, and dark is the only theme. There is no toggle and no light fal
 - `npm run e2e` builds into `.next-e2e`, so it does not fight a running `npm run dev`.
 - The in-memory store lives on `globalThis` so it survives hot reloads. A script outside the server
   cannot reach it, which is why `POST /api/demo/reset` exists next to `npm run db:reset-demo`.
-- Confirm seats writes one assignment for each moving passenger, ordered so a passenger leaves a
-  seat before the next one takes it. A deliberate two-way swap cannot be ordered and reports a
-  clear failure instead.
+- For manual choices, Confirm seats writes one assignment for each moving passenger, ordered so a
+  passenger leaves a seat before the next one takes it. A deliberate two-way swap cannot be ordered
+  and reports a clear failure instead. A selected party block uses the atomic party apply instead.
 - Tailwind v4 is configured in CSS. Design tokens live in the `@theme` block of `app/globals.css`,
   not in a `tailwind.config` file.
 
