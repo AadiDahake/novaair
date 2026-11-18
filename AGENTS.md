@@ -139,17 +139,21 @@ click on it has to explain why, and that refusal is an analytics signal.
 
 ## The theme
 
-NovaAir is dark, and dark is the only theme. There is no toggle and no light fallback.
+NovaAir supports System, Light and Dark appearance preferences. The global Accessibility and
+appearance control persists the visitor's choice, and System follows `prefers-color-scheme`.
 
-- Token names say their job, not their hue: `ink` is text and is near-white, `surface` is a card,
-  `line` is a decorative hairline and `line-strong` is the edge of a control a customer operates.
-  Read the comments in the `@theme` block before you add one.
-- `tests/contrast.test.ts` parses that block and measures every pair the design puts on screen. It
-  fails with the pair named, so a token change tells you what it broke. Add the pair to that test
-  when you add a colour, rather than checking a ratio by hand.
+- Token names say their job, not their hue: `ink` is text, `surface` is a card, `line` is a
+  decorative hairline and `line-strong` is the edge of a control a customer operates. Components
+  use these semantic tokens in every theme. Read the comments in `app/globals.css` before adding
+  one.
+- Theme initialization runs before paint in `app/layout.tsx`. Keep the root layout a server
+  component and preserve that initialization so saved preferences do not flash the wrong theme.
+- `tests/contrast.test.ts` parses the dark and light palettes and measures every pair the design
+  puts on screen. It fails with the pair named, so a token change tells you what it broke. Add the
+  pair to that test when you add a colour, rather than checking a ratio by hand.
 - A receding seat is close to the panel behind it on purpose. Its state is never carried by the pad
   colour alone: the seat prints its own id, an available seat is ringed in amber, and the state is
-  in `data-state` and in the `aria-label`. The test holds that reasoning.
+  in `data-state` and in the `aria-label`. The test holds that reasoning in both themes.
 
 ## Sharp edges
 
