@@ -14,15 +14,15 @@ export interface HelpArticle {
 /**
  * The NovaAir help center.
  *
- * These articles describe only what the site can actually do. NovaAir changes one seat for one
- * passenger at a time, so no article promises to move a group of passengers in one step.
+ * These articles describe only what the site can actually do. NovaAir can recommend and assign
+ * three adjacent seats for a family, while individual seat changes remain available.
  */
 export const HELP_ARTICLES: HelpArticle[] = [
   {
     slug: 'how-do-i-change-my-seat',
     title: 'How do I change my seat?',
     category: 'Seats',
-    summary: 'Open your trip, go to Seats, and pick a new seat for each passenger.',
+    summary: 'Open your trip, go to Seats, and pick new seats or find three seats together.',
     sections: [
       {
         heading: 'Change a seat online',
@@ -30,9 +30,10 @@ export const HELP_ARTICLES: HelpArticle[] = [
           'Select My Booking in the top menu.',
           'Enter your confirmation code and the last name on the booking. Then select Find my booking.',
           'On the Manage Trip page, go to the Seats section and select Change seats.',
-          'The seat map opens. Select a passenger in the list on the right, then select a free seat on the map. The seat map moves that one passenger.',
-          'Repeat for each passenger you want to move. NovaAir changes seats one passenger at a time.',
-          'Select Confirm seats to save. Your new seats appear on the Manage Trip page.',
+          'The seat map opens. Select a passenger in the list on the right, then select a free seat on the map.',
+          'For a family of three, select Find three seats together to see available adjacent seats with the lowest extra cost first. Select Seat us together to assign the recommended block to all three passengers.',
+          'For other seat changes, repeat the individual selection for each passenger you want to move.',
+          'Select Confirm seats to save individual seat changes. Seats assigned with Seat us together are saved for the whole family in one action.',
         ],
       },
       {
@@ -88,36 +89,36 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: 'traveling-with-children',
     title: 'Traveling with children',
     category: 'Seats',
-    summary: 'A child under 13 must sit next to an adult on the same booking.',
+    summary: 'Find and assign three adjacent seats for your family from the seat map.',
     sections: [
       {
         heading: 'Seating rule',
         body: [
           'A child under 13 years of age must sit next to an adult on the same booking.',
-          'Check the seat map before you travel. If your party is not seated together, move each passenger yourself.',
+          'Check the seat map before you travel. If your family of three is not seated together, NovaAir can find and assign three adjacent seats for you.',
         ],
       },
       {
-        heading: 'How to move your party',
+        heading: 'Find three seats together',
         body: [
-          'NovaAir changes seats one passenger at a time.',
           'Open Manage Trip, go to Seats, and select Change seats.',
-          'Select the first passenger, then select a free seat. Select the next passenger, then select the next free seat. Repeat for every passenger.',
-          'Read the seat map carefully. Two free seats either side of the aisle are not seats together. Seats A, B and C are one block. Seats D, E and F are the other block. The aisle is between C and D.',
-          'Select Confirm seats when every passenger has the seat you want.',
+          'On the seat map, select Find three seats together.',
+          'NovaAir searches for three available seats in the same row, in consecutive columns, and on one side of the aisle. Seats held for accessible seating, seats taken by other customers, and seats that do not meet passenger rules are not offered.',
+          'The available choices are listed with the lowest total extra cost first. Each choice shows its seat numbers, row, and total extra cost.',
+          'Select Seat us together for the block you want. All three passengers are moved in one action. If the block is no longer available, nobody in your family is moved from their current seat.',
         ],
       },
       {
         heading: 'Exit rows',
         body: [
           'Rows 15 and 16 are exit rows. A passenger in an exit row must be an adult.',
-          'A child cannot sit in an exit row. The seat map refuses the seat and tells you why.',
+          'A child cannot sit in an exit row. Find three seats together does not recommend an exit-row block for a family traveling with children.',
         ],
       },
       {
         heading: 'If your party is not seated together',
         body: [
-          'Call NovaAir on 1-800-555-0142 and an agent will look at the seat map with you.',
+          'If Find three seats together does not show an available block, call NovaAir on 1-800-555-0142 and an agent will look at the seat map with you.',
           'You can also ask at the gate on the day of travel. Seats together are not guaranteed.',
         ],
       },

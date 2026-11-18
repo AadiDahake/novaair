@@ -4,24 +4,22 @@ NovaAir is a fictional consumer airline website. It is the host product for the 
 `README.md` covers running and checking it. This file covers what an agent needs before it changes
 anything.
 
-## The starting state
+## The current state
 
-NovaAir has the seat primitives but not their composition. No function, route, help article or
-control finds seats together, ranks blocks of seats, or moves more than one passenger in one
-action, so a customer moves each passenger by hand. That gap is the demo's starting point: it is
-the thing the product being demonstrated is asked to close.
+NovaAir has seven single-purpose seat primitives and a composed seat-party capability. From the
+seat map, a family of three can find valid adjacent blocks ranked by extra cost and move the whole
+party in one action.
 
-It is a starting state, not a prohibition. An approved change may add a seat-party capability, and
-the next section says how. What the repository does guard against is drifting into one by
-accident: each primitive stays single-purpose, and a capability that composes them is a deliberate
-addition with its own tests and docs.
+The capability is deliberate and has its own tests and docs. Each primitive stays single-purpose,
+and future changes must preserve the composition boundary and the rules below rather than reaching
+past the primitives into the store.
 
-## Adding seat-party capabilities
+## Maintaining seat-party capabilities
 
-An approved change - a filed request, an accepted pull request - may add a capability that finds a
-block of seats for a travel party and moves the party in one action. It composes the existing
-primitives rather than reaching past them into the store: `getSeatMap`, `getAvailableSeats`,
-`getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat` and `getReservation`.
+The seat-party capability finds a block of seats for a travel party and moves the party in one
+action. It composes the existing primitives rather than reaching past them into the store:
+`getSeatMap`, `getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
+`getReservation` and `getReservationByCode`.
 
 Where the pieces belong:
 
@@ -46,40 +44,42 @@ What it must keep true, whatever else it does:
 - **One atomic apply.** The whole party lands or none of it does. A failed apply leaves every
   passenger on the seat they already had.
 
-`tests/seat-party.test.ts` is the contract on all of that. It skips cleanly while no such
-capability exists, and enforces every point above the moment `lib/seats/index.ts` exports
-`findSeatsForParty` or `assignSeatsForParty`. Use those two names: they are what the test looks
-for, and an export under another name is a capability the test cannot guard. The same test still
-asserts that the seven primitives are all exported and that nothing else appears beside them.
+`tests/seat-party.test.ts` is the contract on all of that. It requires
+`findSeatsForParty` and `assignSeatsForParty` and enforces every point above. Keep those two names:
+they are what the test and HTTP shell use. The same test asserts that the seven primitives and two
+seat-party functions are exported and that nothing else appears beside them.
 
-A change that ships this also updates `docs/api.md`, and the help center in `lib/help/articles.ts`
-where its copy no longer describes the product.
+Changes to this capability also update `docs/api.md` and any affected help copy in
+`lib/help/articles.ts`.
 
 ## Layout
 
 | Path | What lives there |
 | --- | --- |
-| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, and the primitives in `index.ts`. |
+| `lib/seats/` | The domain. Types, constants, the seed, prices, aria labels, primitives and seat-party capability. |
 | `lib/repo/` | Storage. `types.ts` is the contract; `memory.ts` and `supabase.ts` implement it; `index.ts` picks one. |
 | `lib/analytics/` | The event contract and `capture`. PostHog itself starts in `instrumentation-client.ts`. |
 | `lib/help/articles.ts` | Every help article, as data. |
-| `app/api/` | Route handlers. Each one is a thin shell over one primitive. |
+| `app/api/` | Route handlers. Each one is a thin HTTP shell over a domain primitive or composed capability. |
 | `app/` | Pages. `trips/[code]` is Manage Trip; `trips/[code]/seats` is the seat map. |
 | `components/seats/` | The seat map UI. `ChooseSeatsView.tsx` owns the interaction and the events. |
 | `scripts/` | Migrate, seed and reset, in plain `pg`. Also the PostHog seeders and the verifier. |
 | `supabase/migrations/` | The schema. |
 
-## The primitives contract
+## The seat domain contract
 
 `lib/seats/index.ts` exports seven primitives, documented in `docs/api.md`: `getSeatMap`,
 `getAvailableSeats`, `getPassengerRestrictions`, `calculateSeatPrice`, `assignSeat`,
-`getReservation`, `getReservationByCode`. Today they are the whole of the module.
+`getReservation`, `getReservationByCode`. It also exports the composed capability functions
+`findSeatsForParty` and `assignSeatsForParty`.
 
 - `assignSeat` moves one passenger. It is atomic, because the store rejects a seat another
   passenger holds, and it is idempotent for the same passenger and seat.
+- `findSeatsForParty` finds valid same-row blocks and ranks them by total extra cost.
+- `assignSeatsForParty` applies one valid block to the whole party as an all-or-none operation.
 - Adding an export to this module changes the contract. `tests/seat-party.test.ts` fails until the
-  new name is one it knows, which is the moment to think about whether the export belongs and
-  whether it is really a primitive or a composition of them.
+  new name is documented there, which is the moment to think about whether the export belongs and
+  whether it is a primitive or a composition of them.
 
 ## The analytics contract
 

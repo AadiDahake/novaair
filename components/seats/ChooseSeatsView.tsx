@@ -20,9 +20,24 @@ import { YourFlightCard } from './YourFlightCard'
 
 type Staged = Record<string, string | null>
 
+interface SeatPartyOption {
+  row: number
+  seatIds: string[]
+  extraCostCents: number
+}
+
 interface Props {
   reservation: Reservation
   seatMap: SeatMap
+}
+
+function formatExtraCost(cents: number): string {
+  if (cents === 0) return 'No extra cost'
+
+  return `${new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(cents / 100)} total extra cost`
 }
 
 export function ChooseSeatsView({ reservation, seatMap }: Props) {
@@ -35,6 +50,13 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [familyOptions, setFamilyOptions] = useState<SeatPartyOption[]>([])
+  const [familySearching, setFamilySearching] = useState(false)
+  const [familyApplying, setFamilyApplying] = useState<string | null>(null)
+  const [familyFeedback, setFamilyFeedback] = useState<{
+    kind: 'error' | 'success' | 'info'
+    text: string
+  } | null>(null)
 
   const interactions = useRef(0)
   const openedAt = useRef(Date.now())
@@ -199,6 +221,119 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
       passenger_index: passenger.index,
       passenger_type: passenger.type,
     })
+  }
+
+  async function findThreeSeatsTogether() {
+    interactions.current += 1
+    setFamilySearching(true)
+    setFamilyApplying(null)
+    setFamilyOptions([])
+    setFamilyFeedback(null)
+
+    const searchParams = new URLSearchParams()
+    for (const passenger of passengers) searchParams.append('passengerId', passenger.id)
+
+    try {
+      const response = await fetch(`/api/seats/${flight.id}/party?${searchParams.toString()}`)
+      const payload = (await response.json().catch(() => ({}))) as {
+        message?: string
+        options?: SeatPartyOption[]
+      }
+
+      if (!response.ok) {
+        setFamilyFeedback({
+          kind: 'error',
+          text: payload.message ?? 'We could not search for three seats together. Please try again.',
+        })
+        return
+      }
+
+      const options = Array.isArray(payload.options) ? payload.options : []
+      setFamilyOptions(options)
+
+      if (options.length === 0) {
+        setFamilyFeedback({
+          kind: 'info',
+          text: 'We could not find three available seats together on this flight.',
+        })
+        return
+      }
+
+      setFamilyFeedback({
+        kind: 'info',
+        text: 'The cheapest available option is listed first.',
+      })
+    } catch {
+      setFamilyFeedback({
+        kind: 'error',
+        text: 'We could not search for three seats together. Please try again.',
+      })
+    } finally {
+      setFamilySearching(false)
+    }
+  }
+
+  async function applyFamilySeats(option: SeatPartyOption) {
+    const optionKey = option.seatIds.join('-')
+    interactions.current += 1
+    setFamilyApplying(optionKey)
+    setFamilyFeedback(null)
+    setNotice(null)
+
+    try {
+      const response = await fetch(`/api/seats/${flight.id}/party`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          passengerIds: passengers.map((passenger) => passenger.id),
+          seatIds: option.seatIds,
+        }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as { message?: string }
+
+      if (!response.ok) {
+        setFamilyFeedback({
+          kind: 'error',
+          text:
+            payload.message ??
+            'We could not move everyone into those seats. Your current seats have not changed.',
+        })
+        return
+      }
+
+      setStaged((current) => {
+        const next = { ...current }
+        passengers.forEach((passenger, index) => {
+          next[passenger.id] = option.seatIds[index] ?? current[passenger.id] ?? null
+        })
+        return next
+      })
+      setFamilyOptions([])
+      setFamilyFeedback({
+        kind: 'success',
+        text: `Your family is seated together in ${option.seatIds.join(', ')}.`,
+      })
+      setNotice({ kind: 'success', text: 'Your seats are saved.' })
+
+      capture('seat_assignment_confirmed', {
+        seats: option.seatIds,
+        party_size: passengers.length,
+        same_row: seatsAreSameRow(option.seatIds),
+        contiguous: seatsAreContiguous(option.seatIds),
+        additional_cost: option.extraCostCents,
+        interactions: interactions.current,
+        elapsed_ms: Date.now() - openedAt.current,
+      })
+
+      router.refresh()
+    } catch {
+      setFamilyFeedback({
+        kind: 'error',
+        text: 'Something went wrong. Your current seats have not changed. Please try again.',
+      })
+    } finally {
+      setFamilyApplying(null)
+    }
   }
 
   /**
@@ -449,6 +584,8 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
             type="button"
             onClick={confirm}
             disabled={!hasChanges || confirming}
+            aria-label="Confirm seats"
+            data-testid="confirm-seats"
             className="pill pill-primary mt-3 w-full px-7 py-4 text-[1rem]"
           >
             {confirming ? 'Saving...' : 'Confirm seats'}
@@ -457,6 +594,89 @@ export function ChooseSeatsView({ reservation, seatMap }: Props) {
       </section>
 
       <aside className="space-y-6">
+        <section aria-labelledby="family-seats-heading" className="card p-6">
+          <h2 id="family-seats-heading" className="text-lg font-bold text-ink">
+            Find three seats together
+          </h2>
+          <p className="mt-1.5 text-[0.8rem] leading-relaxed text-ink-muted">
+            We will find available seats in the same row and on the same side of the aisle, with
+            the lowest extra cost first.
+          </p>
+
+          <button
+            type="button"
+            onClick={findThreeSeatsTogether}
+            disabled={familySearching || familyApplying !== null || passengers.length !== 3}
+            aria-label="Find three seats together"
+            data-testid="find-three-seats-together"
+            className="pill pill-primary mt-5 w-full px-5 py-3 text-[0.9rem]"
+          >
+            {familySearching ? 'Finding three seats...' : 'Find three seats together'}
+          </button>
+
+          <div aria-live="polite" aria-atomic="true" className="mt-4 min-h-[20px]">
+            {familySearching ? (
+              <p className="text-[0.82rem] font-medium text-ink-soft">
+                Searching for the best available seats...
+              </p>
+            ) : null}
+            {!familySearching && familyFeedback ? (
+              <p
+                role={familyFeedback.kind === 'error' ? 'alert' : 'status'}
+                data-testid="family-seat-status"
+                className={`text-[0.82rem] font-medium leading-relaxed ${
+                  familyFeedback.kind === 'error' ? 'text-amber-ink' : 'text-ink-soft'
+                }`}
+              >
+                {familyFeedback.text}
+              </p>
+            ) : null}
+          </div>
+
+          {familyOptions.length > 0 ? (
+            <ol data-testid="family-seat-recommendations" className="mt-4 space-y-3">
+              {familyOptions.slice(0, 3).map((option, index) => {
+                const optionKey = option.seatIds.join('-')
+                const isApplying = familyApplying === optionKey
+
+                return (
+                  <li
+                    key={optionKey}
+                    className="rounded-[16px] border border-line-strong bg-blue-tint p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-ink">
+                          {option.seatIds.join(', ')}
+                        </p>
+                        <p className="mt-1 text-[0.78rem] text-ink-soft">
+                          Row {option.row} · {formatExtraCost(option.extraCostCents)}
+                        </p>
+                      </div>
+                      {index === 0 ? (
+                        <span className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-amber-ink">
+                          Recommended
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFamilySeats(option)}
+                      disabled={familyApplying !== null || familySearching}
+                      aria-label={`Seat us together in ${option.seatIds.join(', ')}`}
+                      data-testid={`seat-us-together-${index + 1}`}
+                      className="pill pill-outline mt-4 w-full px-4 py-2.5 text-[0.82rem]"
+                    >
+                      {isApplying ? 'Seating you together...' : 'Seat us together'}
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+          ) : null}
+        </section>
+
         <section aria-labelledby="passenger-selector-heading" className="card p-6">
           <h2 id="passenger-selector-heading" className="text-lg font-bold text-ink">
             Passengers
