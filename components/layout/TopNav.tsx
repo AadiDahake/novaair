@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Wordmark } from '../brand/Logo'
 import { PhoneIcon, TicketIcon } from '../ui/icons'
+import { ThemeSelector } from './ThemeSelector'
 
 const LINKS = [
   { href: '/flights', label: 'Flights' },
@@ -15,13 +16,16 @@ const LINKS = [
 export function TopNav() {
   const pathname = usePathname() ?? '/'
   const activeLabel =
-    pathname === '/' || pathname.startsWith('/flights') || pathname.startsWith('/trips') || pathname.startsWith('/my-booking')
+    pathname === '/' ||
+    pathname.startsWith('/flights') ||
+    pathname.startsWith('/trips') ||
+    pathname.startsWith('/my-booking')
       ? 'Flights'
       : LINKS.find((link) => pathname.startsWith(link.href))?.label
 
   return (
-    <header className="mb-8 rounded-[999px] border border-line bg-surface px-4 py-3 shadow-[0_10px_30px_-24px_rgba(0,0,0,0.9)]">
-      <nav aria-label="Main" className="flex items-center justify-between gap-6">
+    <header className="mb-8 rounded-[32px] border border-line bg-surface px-4 py-3 shadow-[0_10px_30px_-24px_rgba(0,0,0,0.9)] lg:rounded-[999px]">
+      <nav aria-label="Main" className="flex flex-wrap items-center justify-between gap-6">
         <Link href="/" aria-label="NovaAir home" className="rounded-full">
           <Wordmark />
         </Link>
@@ -47,7 +51,8 @@ export function TopNav() {
           })}
         </ul>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2.5 sm:w-auto">
+          <ThemeSelector />
           <a href="tel:18005550142" className="pill pill-outline px-4 py-2.5 text-[0.85rem]">
             <PhoneIcon />
             Call Us

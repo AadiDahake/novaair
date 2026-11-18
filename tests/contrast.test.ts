@@ -2,11 +2,11 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
 /**
- * NovaAir is a dark product, and a dark product is where contrast quietly goes wrong.
+ * NovaAir ships dark and light palettes, and contrast can quietly go wrong in either one.
  *
- * This test reads the real tokens out of the `@theme` block of `app/globals.css`, so it cannot
- * drift from the palette the site ships. It then measures every pair the design puts on screen.
- * A token change that drops a pair below WCAG AA fails here, with the pair named.
+ * This test reads the real default tokens and light-mode overrides out of `app/globals.css`, so it
+ * cannot drift from the palettes the site ships. It then measures every pair the design puts on
+ * screen. A token change that drops a pair below WCAG AA fails here, with the theme and pair named.
  *
  * Thresholds, from WCAG 2.1:
  *   4.5:1  text below 18.66px bold or 24px normal
@@ -16,14 +16,51 @@ import { describe, expect, it } from 'vitest'
 const AA_TEXT = 4.5
 const AA_LARGE = 3
 
-async function themeColors(): Promise<Record<string, string>> {
-  const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8')
-  const theme = css.slice(css.indexOf('@theme'), css.indexOf('@layer base'))
-  const colors: Record<string, string> = {}
-  for (const [, name, value] of theme.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6});/g)) {
+type ThemeName = 'dark' | 'light'
+type Colors = Record<string, string>
+
+interface Palettes {
+  dark: Colors
+  light: Colors
+  lightOverrides: Colors
+}
+
+function parseColors(source: string): Colors {
+  const colors: Colors = {}
+
+  for (const [, name, value] of source.matchAll(
+    /--color-([a-z-]+):\s*(#[0-9a-fA-F]{6});/g,
+  )) {
     if (name && value) colors[name] = value
   }
+
   return colors
+}
+
+async function themeColors(): Promise<Palettes> {
+  const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8')
+  const themeStart = css.indexOf('@theme')
+  const lightStart = css.indexOf('html[data-theme="light"]')
+  const baseStart = css.indexOf('@layer base', lightStart)
+
+  if (themeStart < 0 || lightStart < 0 || baseStart < 0) {
+    throw new Error('Could not find the default theme, light theme, or base layer in globals.css')
+  }
+
+  const dark = parseColors(css.slice(themeStart, lightStart))
+  const lightOverrides = parseColors(css.slice(lightStart, baseStart))
+
+  return {
+    dark,
+    light: { ...dark, ...lightOverrides },
+    lightOverrides,
+  }
+}
+
+function color(colors: Colors, token: string, theme: ThemeName): string {
+  const value = colors[token]
+  expect(value, `${theme} theme has no --color-${token} token`).toBeTypeOf('string')
+  return value as string
 }
 
 /** The sRGB relative luminance of a `#rrggbb` colour, per WCAG 2.1. */
@@ -88,93 +125,158 @@ const EDGE_PAIRS: { what: string; fg: string; bg: string }[] = [
   { what: 'the amber outline against the seat panel behind it', fg: 'orange', bg: 'surface' },
 ]
 
-describe('the dark palette holds WCAG AA', () => {
-  it('reads the tokens out of the theme block', async () => {
-    const colors = await themeColors()
-    expect(colors.ink).toBe('#f4f6ff')
-    expect(colors['page-from']).toBe('#0b1020')
-    expect(Object.keys(colors).length).toBeGreaterThan(20)
+describe('the dark and light palettes hold WCAG AA', () => {
+  it('reads the default tokens and every light-mode override', async () => {
+    const palettes = await themeColors()
+
+    expect(palettes.dark.ink).toBe('#f4f6ff')
+    expect(palettes.dark['page-from']).toBe('#0b1020')
+    expect(palettes.light.ink).toBe('#17213d')
+    expect(palettes.light['page-from']).toBe('#dce5f2')
+    expect(Object.keys(palettes.dark).length).toBeGreaterThan(20)
+    expect(Object.keys(palettes.lightOverrides).sort()).toEqual(Object.keys(palettes.dark).sort())
   })
 
-  it('holds 4.5:1 for every piece of text the site paints', async () => {
-    const colors = await themeColors()
+  it('holds 4.5:1 for every piece of text each theme paints', async () => {
+    const palettes = await themeColors()
     const failures: string[] = []
-    for (const pair of TEXT_PAIRS) {
-      const fg = colors[pair.fg]
-      const bg = colors[pair.bg]
-      expect(fg, `unknown token --color-${pair.fg}`).toBeTypeOf('string')
-      expect(bg, `unknown token --color-${pair.bg}`).toBeTypeOf('string')
-      const ratio = contrast(fg as string, bg as string)
-      const min = pair.min ?? AA_TEXT
-      if (ratio < min) {
-        failures.push(`${pair.what}: ${pair.fg} on ${pair.bg} is ${ratio.toFixed(2)}:1, needs ${min}`)
+
+    for (const theme of ['dark', 'light'] as const) {
+      const colors = palettes[theme]
+
+      for (const pair of TEXT_PAIRS) {
+        const fg = color(colors, pair.fg, theme)
+        const bg = color(colors, pair.bg, theme)
+        const ratio = contrast(fg, bg)
+        const min = pair.min ?? AA_TEXT
+
+        if (ratio < min) {
+          failures.push(
+            `${theme} - ${pair.what}: ${pair.fg} on ${pair.bg} is ${ratio.toFixed(2)}:1, needs ${min}`,
+          )
+        }
       }
     }
+
     expect(failures).toEqual([])
   })
 
-  it('holds 3:1 for every control edge and every state a colour carries', async () => {
-    const colors = await themeColors()
+  it('holds 3:1 for every control edge, focus indicator and color-carried state', async () => {
+    const palettes = await themeColors()
     const failures: string[] = []
-    for (const pair of EDGE_PAIRS) {
-      const ratio = contrast(colors[pair.fg] as string, colors[pair.bg] as string)
-      if (ratio < AA_LARGE) {
+
+    for (const theme of ['dark', 'light'] as const) {
+      const colors = palettes[theme]
+
+      for (const pair of EDGE_PAIRS) {
+        const ratio = contrast(color(colors, pair.fg, theme), color(colors, pair.bg, theme))
+
+        if (ratio < AA_LARGE) {
+          failures.push(
+            `${theme} - ${pair.what}: ${pair.fg} on ${pair.bg} is ${ratio.toFixed(2)}:1, needs ${AA_LARGE}`,
+          )
+        }
+      }
+    }
+
+    expect(failures).toEqual([])
+  })
+
+  it('holds 4.5:1 for text on filled actions in both themes', async () => {
+    const palettes = await themeColors()
+    const failures: string[] = []
+
+    for (const theme of ['dark', 'light'] as const) {
+      const colors = palettes[theme]
+
+      for (const token of ['blue', 'blue-dark']) {
+        const ratio = contrast('#ffffff', color(colors, token, theme))
+
+        if (ratio < AA_TEXT) {
+          failures.push(
+            `${theme} - white on --color-${token} is ${ratio.toFixed(2)}:1, needs ${AA_TEXT}`,
+          )
+        }
+      }
+
+      // The white pill is the strongest action on the page, so its text goes the other way.
+      const pill = contrast(color(colors, 'ink-inverse', theme), '#ffffff')
+      if (pill < AA_TEXT) {
         failures.push(
-          `${pair.what}: ${pair.fg} on ${pair.bg} is ${ratio.toFixed(2)}:1, needs ${AA_LARGE}`,
+          `${theme} - --color-ink-inverse on white is ${pill.toFixed(2)}:1, needs ${AA_TEXT}`,
         )
       }
     }
-    expect(failures).toEqual([])
-  })
 
-  it('holds 4.5:1 for white text on the filled actions', async () => {
-    const colors = await themeColors()
-    for (const token of ['blue', 'blue-dark']) {
-      const ratio = contrast('#ffffff', colors[token] as string)
-      expect(ratio, `white on --color-${token} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
-        AA_TEXT,
-      )
-    }
-    // The white pill is the strongest action on the page, so its text goes the other way.
-    const pill = contrast(colors['ink-inverse'] as string, '#ffffff')
-    expect(pill).toBeGreaterThanOrEqual(AA_TEXT)
+    expect(failures).toEqual([])
   })
 
   /**
    * A booked seat and a blocked seat recede on purpose, so their pad is close to the panel behind
    * them. That is only sound because the pad never carries the state on its own: the seat prints
    * its own id at 4.5:1, an available seat is ringed in amber at 3:1, and every state is written
-   * out in the seat's `aria-label` and its `data-state`. This test holds that reasoning in place.
+   * out in the seat's `aria-label` and its `data-state`. This test holds that reasoning in place
+   * for both themes.
    */
-  it('never leaves a seat state to the pad colour alone', async () => {
-    const colors = await themeColors()
-    for (const state of ['seat-booked', 'seat-blocked']) {
-      // The id on a receding seat still carries against the panel behind the seat.
-      const idAgainstPanel = contrast(colors['ink-muted'] as string, colors.surface as string)
-      expect(idAgainstPanel).toBeGreaterThanOrEqual(AA_TEXT)
-      // And against the pad itself.
-      expect(contrast(colors['ink-muted'] as string, colors[state] as string)).toBeGreaterThanOrEqual(
-        AA_TEXT,
-      )
+  it('never leaves a seat state to the pad color alone in either theme', async () => {
+    const palettes = await themeColors()
+    const failures: string[] = []
+
+    for (const theme of ['dark', 'light'] as const) {
+      const colors = palettes[theme]
+
+      for (const state of ['seat-booked', 'seat-blocked']) {
+        const idAgainstPanel = contrast(
+          color(colors, 'ink-muted', theme),
+          color(colors, 'surface', theme),
+        )
+        if (idAgainstPanel < AA_TEXT) {
+          failures.push(
+            `${theme} - receding seat id on the panel is ${idAgainstPanel.toFixed(2)}:1, needs ${AA_TEXT}`,
+          )
+        }
+
+        const idAgainstPad = contrast(
+          color(colors, 'ink-muted', theme),
+          color(colors, state, theme),
+        )
+        if (idAgainstPad < AA_TEXT) {
+          failures.push(
+            `${theme} - receding seat id on ${state} is ${idAgainstPad.toFixed(2)}:1, needs ${AA_TEXT}`,
+          )
+        }
+      }
+
+      for (const background of ['surface-raised', 'seat-booked']) {
+        const availableRing = contrast(
+          color(colors, 'orange', theme),
+          color(colors, background, theme),
+        )
+        if (availableRing < AA_LARGE) {
+          failures.push(
+            `${theme} - available seat ring on ${background} is ${availableRing.toFixed(2)}:1, needs ${AA_LARGE}`,
+          )
+        }
+      }
     }
-    // "Available" is told from "booked" by the amber ring, not by the fill, so the ring carries it.
-    expect(contrast(colors.orange as string, colors['surface-raised'] as string)).toBeGreaterThanOrEqual(
-      AA_LARGE,
-    )
-    expect(contrast(colors.orange as string, colors['seat-booked'] as string)).toBeGreaterThanOrEqual(
-      AA_LARGE,
-    )
+
+    expect(failures).toEqual([])
   })
 
-  it('keeps the surfaces in order, darkest to lightest', async () => {
-    const colors = await themeColors()
+  it('keeps the surfaces ordered from darkest to lightest in both themes', async () => {
+    const palettes = await themeColors()
     const order = ['page-from', 'page-to', 'surface-sunk', 'shell', 'surface', 'surface-raised']
-    const levels = order.map((token) => luminance(colors[token] as string))
-    for (let index = 1; index < levels.length; index += 1) {
-      expect(
-        levels[index] as number,
-        `--color-${order[index]} must not be darker than --color-${order[index - 1]}`,
-      ).toBeGreaterThan(levels[index - 1] as number)
+
+    for (const theme of ['dark', 'light'] as const) {
+      const colors = palettes[theme]
+      const levels = order.map((token) => luminance(color(colors, token, theme)))
+
+      for (let index = 1; index < levels.length; index += 1) {
+        expect(
+          levels[index] as number,
+          `${theme} --color-${order[index]} must not be darker than --color-${order[index - 1]}`,
+        ).toBeGreaterThan(levels[index - 1] as number)
+      }
     }
   })
 })

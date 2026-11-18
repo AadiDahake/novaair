@@ -27,10 +27,21 @@ export const viewport: Viewport = {
   themeColor: '#0b1020',
 }
 
+const themeInitializer = `
+  try {
+    var savedTheme = window.localStorage.getItem('novaair-theme');
+    document.documentElement.dataset.theme =
+      savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
+  } catch {
+    document.documentElement.dataset.theme = 'dark';
+  }
+`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en" className={poppins.variable} suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
         <a
           href="#main"
           className="pill pill-light sr-only px-5 py-2.5 focus:not-sr-only focus:absolute focus:left-6 focus:top-6 focus:z-50"

@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 /**
- * NovaAir is a dark product. There is one theme, and it is this one.
+ * NovaAir has dark and light themes. Dark is the default when no preference has been saved.
  *
  * Every colour below is a token. Nothing in `app/` or `components/` should hold a palette colour
- * of its own, so a change here reaches the whole site. `tests/contrast.test.ts` reads this block
+ * of its own, so a change here reaches the whole site. `tests/contrast.test.ts` reads both palettes
  * and fails if any text or control pair drops below WCAG AA.
  */
 @theme {
@@ -46,14 +46,14 @@
   /* A filled action. White text on it holds 4.5:1, which is why it is not brighter. */
   --color-blue: #2668ee;
   --color-blue-dark: #1a52c8;
-  /* Blue as text or as an icon on a dark surface. */
+  /* Blue as text or as an icon on a surface. */
   --color-blue-soft: #8ab4ff;
   /* The blue-tinted panel. */
   --color-blue-tint: #1b2b52;
 
   /* The seat outline, and the fill of a paid-seat price tag. */
   --color-orange: #f5a623;
-  /* Amber as text or as an icon on a dark surface. */
+  /* Amber as text or as an icon on a surface. */
   --color-amber-ink: #f7c977;
   /* The warm panel: an extra-legroom row, and an error notice. */
   --color-orange-tint: #2c2314;
@@ -79,9 +79,50 @@
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/*
+ * Light mode replaces the same semantic tokens used by dark mode. Components do not need
+ * theme-specific branches, and an explicit document attribute keeps the saved choice stable.
+ */
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --color-ink: #17213d;
+  --color-ink-soft: #364461;
+  --color-ink-muted: #48536e;
+  --color-ink-dim: #59637d;
+  --color-ink-inverse: #10162e;
+
+  --color-page-from: #dce5f2;
+  --color-page-mid: #e3eaf4;
+  --color-page-to: #e8eef7;
+  --color-surface-sunk: #edf1f7;
+  --color-shell: #f3f6fa;
+  --color-surface: #f8fafc;
+  --color-surface-raised: #ffffff;
+
+  --color-line: #d3dbe8;
+  --color-line-strong: #727b91;
+  --color-line-hover: #59647d;
+
+  --color-blue: #2668ee;
+  --color-blue-dark: #1a52c8;
+  --color-blue-soft: #174fae;
+  --color-blue-tint: #e4edff;
+
+  --color-orange: #c56a00;
+  --color-amber-ink: #774300;
+  --color-orange-tint: #fff0d8;
+
+  --color-seat-booked: #e1e6ef;
+  --color-seat-blocked: #d3dbe8;
+  --color-seat-blocked-low: #e6ebf3;
+  --color-seat-edge: #aab4c5;
+  --color-green: #087447;
+}
+
 @layer base {
   html {
-    /* Native controls, form widgets and scrollbars follow the page. */
+    /* Native controls, form widgets and scrollbars follow the selected page theme. */
     color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -155,7 +196,7 @@
     cursor: not-allowed;
   }
 
-  /* The strongest action on a dark page is a white one. */
+  /* The strongest action on the page is a white one. */
   .pill-light {
     background: #ffffff;
     color: var(--color-ink-inverse);
