@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { getRepository } from '../lib/repo'
 import * as seatModule from '../lib/seats'
 import {
+  assignSeatsForParty as applySeatsForParty,
+  findSeatsForParty as findPartySeats,
   getAvailableSeats,
   getPassengerRestrictions,
   getReservationByCode,
@@ -20,13 +22,10 @@ import { DEMO_PASSENGERS } from '../lib/seats/demo-data'
 import type { SeatColumn } from '../lib/seats/types'
 
 /**
- * NovaAir starts with the seat primitives and no composition of them: nothing in the product
- * finds a block of seats for a party or moves a party in one action. That is the starting state,
- * not a rule, and an approved change may add such a capability.
+ * This test is the contract on NovaAir's approved seat-party capability. Both compositions are
+ * required exports from `lib/seats/index.ts`, and the tests enforce what they must keep true.
  *
- * This test is the contract on that capability. It skips while the capability is absent, and the
- * moment `lib/seats/index.ts` exports it, it enforces what the capability must keep true. The
- * expected export names and the shape below are documented in `AGENTS.md`, under
+ * The expected export names and the shape below are documented in `AGENTS.md`, under
  * "Adding seat-party capabilities", and in `docs/api.md`.
  */
 
@@ -41,13 +40,6 @@ type AssignSeatsForPartyResult =
   | { ok: true; assignments: { passengerId: string; seatId: string }[] }
   | { ok: false; reason: string; message: string }
 
-interface SeatPartyCapability {
-  /** Blocks that could seat the whole party, cheapest extra cost first. */
-  findSeatsForParty: (flightId: string, passengerIds: string[]) => Promise<SeatPartyOption[]>
-  /** Move the whole party in one apply. All of it lands, or none of it does. */
-  assignSeatsForParty: (passengerIds: string[], seatIds: string[]) => Promise<AssignSeatsForPartyResult>
-}
-
 const PRIMITIVES = [
   'assignSeat',
   'calculateSeatPrice',
@@ -59,8 +51,6 @@ const PRIMITIVES = [
 ]
 
 const SEAT_PARTY_EXPORTS = ['findSeatsForParty', 'assignSeatsForParty']
-
-const capability = seatModule as unknown as Partial<SeatPartyCapability>
 
 const PARTY = DEMO_PASSENGERS.map((passenger) => passenger.id)
 const CHILDREN_ONLY = DEMO_PASSENGERS.filter((passenger) => passenger.type !== 'adult').map(
@@ -91,18 +81,14 @@ function isContiguousBlock(seatIds: string[]): boolean {
 }
 
 function findSeatsForParty(passengerIds: string[]): Promise<SeatPartyOption[]> {
-  const find = capability.findSeatsForParty
-  if (!find) throw new Error('findSeatsForParty is absent; this suite should have been skipped.')
-  return find(FLIGHT_ID, passengerIds)
+  return findPartySeats(FLIGHT_ID, passengerIds)
 }
 
 function assignSeatsForParty(
   passengerIds: string[],
   seatIds: string[],
 ): Promise<AssignSeatsForPartyResult> {
-  const apply = capability.assignSeatsForParty
-  if (!apply) throw new Error('assignSeatsForParty is absent; this suite should have been skipped.')
-  return apply(passengerIds, seatIds)
+  return applySeatsForParty(passengerIds, seatIds)
 }
 
 async function partySeats(): Promise<Record<string, string | null>> {
@@ -117,18 +103,19 @@ beforeEach(async () => {
 })
 
 describe('the seat primitives contract', () => {
-  it('exports every primitive', () => {
+  it('exports every primitive and both seat-party compositions', () => {
     const exported = Object.keys(seatModule)
     for (const primitive of PRIMITIVES) expect(exported).toContain(primitive)
+    for (const composition of SEAT_PARTY_EXPORTS) expect(exported).toContain(composition)
   })
 
   it('exports nothing beyond the primitives and the documented seat-party capability', () => {
-    const extra = Object.keys(seatModule).filter((name) => !PRIMITIVES.includes(name))
-    expect(extra.filter((name) => !SEAT_PARTY_EXPORTS.includes(name))).toEqual([])
+    const expected = [...PRIMITIVES, ...SEAT_PARTY_EXPORTS]
+    expect(Object.keys(seatModule).filter((name) => !expected.includes(name))).toEqual([])
   })
 })
 
-describe.skipIf(!capability.findSeatsForParty)('findSeatsForParty', () => {
+describe('findSeatsForParty', () => {
   it('offers only contiguous seats in one row, on one side of the aisle', async () => {
     const options = await findSeatsForParty(PARTY)
     expect(options.length).toBeGreaterThan(0)
@@ -197,7 +184,7 @@ describe.skipIf(!capability.findSeatsForParty)('findSeatsForParty', () => {
   })
 })
 
-describe.skipIf(!capability.assignSeatsForParty)('assignSeatsForParty', () => {
+describe('assignSeatsForParty', () => {
   it('moves the whole party in one apply', async () => {
     const [best] = await findSeatsForParty(PARTY)
     expect(best).toBeDefined()
