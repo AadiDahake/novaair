@@ -11,15 +11,19 @@ Nothing on this site is a real airline, a real flight or a real booking.
 - Find a booking by confirmation code and last name.
 - Manage Trip: itinerary, passengers, and Seats, Bags and Check-in sections.
 - Choose Seats: a 30 row, 3-3 seat map with paid extra-legroom rows, exit rows, and one seat held
-  for accessible seating. One passenger moves at a time.
+  for accessible seating. Customers can move one passenger at a time or search for adjacent seats
+  for a family or group, review availability and total extra cost, and move the party together in
+  one atomic action.
 - A help center of six articles.
 
-## What it does not do yet
+## Seat-party capability
 
-NovaAir has no way to find seats together and no way to move a party in one action. A customer
-reads the map and moves each passenger by hand. That is where the product starts, and it is the
-gap the Patchlet demo is about, rather than a rule: an approved change may add a seat-party
-capability. `AGENTS.md`, under "Adding seat-party capabilities", says where such code belongs, and
+NovaAir can find available blocks of consecutive seats in the same row on one side of the aisle.
+Results follow passenger and accessibility restrictions and are ranked by total extra cost. A
+customer can select a block and move the requested party together in one atomic action. If the
+apply fails, every passenger keeps their previous seat.
+
+`AGENTS.md`, under "Adding seat-party capabilities", defines where the capability belongs, and
 `tests/seat-party.test.ts` holds it to its invariants.
 
 ## Run it
@@ -123,7 +127,7 @@ still runs, on the in-memory store, and its data resets when the instance recycl
 
 | File | What it holds |
 | --- | --- |
-| `docs/api.md` | The primitives and the route handlers over them. |
+| `docs/api.md` | The primitives, seat-party capability and route handlers over them. |
 | `docs/analytics.md` | Every event name and property NovaAir sends. |
 | `docs/design-research.md` | What was read on real airline sites, and what NovaAir borrows. |
 | `docs/screenshots/` | The site at 1440x900, and one PostHog replay of a seeded session. |

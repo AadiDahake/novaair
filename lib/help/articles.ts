@@ -14,15 +14,15 @@ export interface HelpArticle {
 /**
  * The NovaAir help center.
  *
- * These articles describe only what the site can actually do. NovaAir changes one seat for one
- * passenger at a time, so no article promises to move a group of passengers in one step.
+ * These articles describe only what the site can actually do. Customers can change one
+ * passenger's seat or find and apply an adjacent block for a family or group.
  */
 export const HELP_ARTICLES: HelpArticle[] = [
   {
     slug: 'how-do-i-change-my-seat',
     title: 'How do I change my seat?',
     category: 'Seats',
-    summary: 'Open your trip, go to Seats, and pick a new seat for each passenger.',
+    summary: 'Open your trip, go to Seats, and choose individual seats or find seats together.',
     sections: [
       {
         heading: 'Change a seat online',
@@ -30,9 +30,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
           'Select My Booking in the top menu.',
           'Enter your confirmation code and the last name on the booking. Then select Find my booking.',
           'On the Manage Trip page, go to the Seats section and select Change seats.',
-          'The seat map opens. Select a passenger in the list on the right, then select a free seat on the map. The seat map moves that one passenger.',
-          'Repeat for each passenger you want to move. NovaAir changes seats one passenger at a time.',
+          'To move one passenger, select that passenger in the list on the right, then select a free seat on the map.',
+          'Repeat for each passenger you want to move.',
           'Select Confirm seats to save. Your new seats appear on the Manage Trip page.',
+        ],
+      },
+      {
+        heading: 'Find seats together',
+        body: [
+          'In Find seats together, choose the number of passengers who need adjacent seats.',
+          'Select Find seats together to see available blocks. Every result contains consecutive seats in one row on one side of the aisle.',
+          'Results are shown from the lowest to the highest total extra cost. Review the seat numbers, row and total fee before choosing a block.',
+          'Select a block to show it on the seat map, then select Confirm seats. Every passenger in the requested party moves in one action.',
+          'If the block becomes unavailable before you confirm, nobody in the party is moved. Search again to see current availability.',
+          'If no valid block is available, the seat map tells you that no seats together are available for the requested party size.',
         ],
       },
       {
@@ -73,6 +84,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
           'Rows 1 to 3 are bulkhead rows. They have extra legroom and cost 45 US dollars for each passenger.',
           'Rows 15 and 16 are exit rows. They have extra legroom and cost 39 US dollars for each passenger.',
           'The seat map shows the price on the seat, and the total appears in Transaction Details before you confirm.',
+          'Find seats together shows the total extra cost for each available block before you select it. Results with the lowest total extra cost appear first.',
         ],
       },
       {
@@ -88,36 +100,38 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: 'traveling-with-children',
     title: 'Traveling with children',
     category: 'Seats',
-    summary: 'A child under 13 must sit next to an adult on the same booking.',
+    summary: 'Find adjacent seats for your family while keeping children next to an adult.',
     sections: [
       {
         heading: 'Seating rule',
         body: [
           'A child under 13 years of age must sit next to an adult on the same booking.',
-          'Check the seat map before you travel. If your party is not seated together, move each passenger yourself.',
+          'The adjacent-seat search only offers a family block when it includes an adult from the same booking.',
         ],
       },
       {
-        heading: 'How to move your party',
+        heading: 'How to find seats for your family',
         body: [
-          'NovaAir changes seats one passenger at a time.',
           'Open Manage Trip, go to Seats, and select Change seats.',
-          'Select the first passenger, then select a free seat. Select the next passenger, then select the next free seat. Repeat for every passenger.',
-          'Read the seat map carefully. Two free seats either side of the aisle are not seats together. Seats A, B and C are one block. Seats D, E and F are the other block. The aisle is between C and D.',
-          'Select Confirm seats when every passenger has the seat you want.',
+          'In Find seats together, choose the number of family members who need adjacent seats, then select Find seats together.',
+          'Review the available seat numbers, rows and total extra costs. Results with the lowest total extra cost appear first.',
+          'Every offered block uses consecutive seats in one row on one side of the aisle. Seats A, B and C are one block. Seats D, E and F are the other block. The aisle is between C and D.',
+          'Select a block to show it on the seat map, then select Confirm seats to move the requested passengers together in one action.',
+          'If any seat is no longer available when you confirm, nobody in the family is moved. Search again for current options.',
         ],
       },
       {
         heading: 'Exit rows',
         body: [
           'Rows 15 and 16 are exit rows. A passenger in an exit row must be an adult.',
-          'A child cannot sit in an exit row. The seat map refuses the seat and tells you why.',
+          'A child cannot sit in an exit row. The adjacent-seat search does not offer a block that would place a child there, and the seat map refuses an individual selection and tells you why.',
         ],
       },
       {
-        heading: 'If your party is not seated together',
+        heading: 'If no seats together are available',
         body: [
-          'Call NovaAir on 1-800-555-0142 and an agent will look at the seat map with you.',
+          'The seat map tells you when no valid block is available for the number of passengers you requested.',
+          'Try searching for a smaller group, or call NovaAir on 1-800-555-0142 and an agent will look at the seat map with you.',
           'You can also ask at the gate on the day of travel. Seats together are not guaranteed.',
         ],
       },
