@@ -19,16 +19,44 @@ import type {
 } from './types'
 
 /**
- * The server-side seat primitives.
+ * The server-side seat primitives and seat-party composition.
  *
- * Each one does a single job. Nothing here yet searches for seats together, ranks blocks of seats,
- * or moves more than one passenger, so a caller that wants a party in one row reads the map and
- * assigns each passenger separately, which is what the site's own UI does.
- *
- * A capability that composes these into a party search and a party apply belongs in this module.
- * `AGENTS.md`, under "Adding seat-party capabilities", says what it must keep true, and
- * `tests/seat-party.test.ts` enforces it.
+ * The party capability composes the existing primitives to find ranked blocks on one side of the
+ * aisle and apply every passenger assignment as one operation. If any assignment fails, completed
+ * moves are rolled back before the failure is returned.
  */
+
+export interface SeatPartyOption {
+  seatIds: string[]
+  row: number
+  extraCostCents: number
+  totalPriceCents: number
+}
+
+export interface SeatPartyAssignment {
+  passengerId: string
+  seatId: string
+}
+
+export type AssignSeatsForPartyResult =
+  | {
+      ok: true
+      assignments: Extract<AssignSeatResult, { ok: true }>[]
+      totalPriceCents: number
+    }
+  | {
+      ok: false
+      reason:
+        | 'invalid_party'
+        | 'invalid_block'
+        | 'seats_unavailable'
+        | 'passenger_not_found'
+        | 'seat_not_found'
+        | 'seat_booked'
+        | 'seat_blocked'
+        | 'exit_row_child'
+      message: string
+    }
 
 function effectiveState(baseState: Seat['baseState'], occupied: boolean): SeatState {
   if (baseState === 'blocked') return 'blocked'
@@ -122,6 +150,91 @@ export async function calculateSeatPrice(flightId: string, seatId: string): Prom
 }
 
 /**
+ * Find available contiguous seats for a party.
+ *
+ * Every option is in one row, stays on one side of the aisle, satisfies the passenger
+ * restrictions, and is ranked by total extra cost.
+ */
+export async function findSeatsForParty(
+  flightId: string,
+  passengerIds: string[],
+): Promise<SeatPartyOption[]> {
+  if (
+    passengerIds.length === 0 ||
+    passengerIds.length > LEFT_COLUMNS.length ||
+    new Set(passengerIds).size !== passengerIds.length
+  ) {
+    return []
+  }
+
+  const [seatMap, availableSeatIds, restrictions] = await Promise.all([
+    getSeatMap(flightId),
+    getAvailableSeats(flightId),
+    Promise.all(passengerIds.map((passengerId) => getPassengerRestrictions(passengerId))),
+  ])
+
+  if (!seatMap || restrictions.some((restriction) => restriction === null)) return []
+
+  const passengerRestrictions = restrictions.filter(
+    (restriction): restriction is PassengerRestrictions => restriction !== null,
+  )
+  const hasAdult = passengerRestrictions.some((restriction) => restriction.type === 'adult')
+  if (passengerRestrictions.some((restriction) => restriction.mustSitWithAdult) && !hasAdult) {
+    return []
+  }
+
+  const available = new Set(availableSeatIds)
+  const options: SeatPartyOption[] = []
+
+  for (const row of seatMap.rows) {
+    if (
+      row.isExitRow &&
+      passengerRestrictions.some((restriction) => !restriction.canUseExitRow)
+    ) {
+      continue
+    }
+
+    for (const side of [row.left, row.right]) {
+      for (let start = 0; start <= side.length - passengerIds.length; start += 1) {
+        const seats = side.slice(start, start + passengerIds.length)
+        if (seats.length !== passengerIds.length) continue
+        if (seats.some((seat) => seat.state !== 'available' || !available.has(seat.id))) continue
+
+        const prices = await Promise.all(
+          seats.map((seat) => calculateSeatPrice(flightId, seat.id)),
+        )
+        if (prices.some((price) => price === null)) continue
+
+        const extraCostCents = prices.reduce<number>(
+          (total, price) => total + (price ?? 0),
+          0,
+        )
+
+        options.push({
+          seatIds: seats.map((seat) => seat.id),
+          row: row.row,
+          extraCostCents,
+          totalPriceCents: extraCostCents,
+        })
+      }
+    }
+  }
+
+  return options.sort((left, right) => {
+    if (left.extraCostCents !== right.extraCostCents) {
+      return left.extraCostCents - right.extraCostCents
+    }
+
+    if (left.row !== right.row) return left.row - right.row
+
+    const leftSeat = parseSeatId(left.seatIds[0] ?? '')
+    const rightSeat = parseSeatId(right.seatIds[0] ?? '')
+    if (!leftSeat || !rightSeat) return 0
+    return leftSeat.column.localeCompare(rightSeat.column)
+  })
+}
+
+/**
  * Move one passenger to one seat.
  *
  * Atomic: the store rejects a seat another passenger already holds.
@@ -144,7 +257,11 @@ export async function assignSeat(passengerId: string, seatId: string): Promise<A
 
   const seat = await repository.getSeatDefinition(reservation.flightId, normalizedSeatId)
   if (!seat) {
-    return { ok: false, reason: 'seat_not_found', message: `Seat ${normalizedSeatId} is not on this aircraft.` }
+    return {
+      ok: false,
+      reason: 'seat_not_found',
+      message: `Seat ${normalizedSeatId} is not on this aircraft.`,
+    }
   }
 
   if (seat.baseState === 'blocked') {
@@ -184,6 +301,148 @@ export async function assignSeat(passengerId: string, seatId: string): Promise<A
     seatId: seat.id,
     previousSeatId: result.previousSeatId,
     priceCents: seat.priceCents,
+  }
+}
+
+async function getPartyFlightId(passengerIds: string[]): Promise<string | null> {
+  if (passengerIds.length === 0) return null
+
+  const repository = getRepository()
+  const passengers = await Promise.all(
+    passengerIds.map((passengerId) => repository.getPassenger(passengerId)),
+  )
+  if (passengers.some((passenger) => passenger === null)) return null
+
+  const reservationCodes = new Set(
+    passengers.map((passenger) => passenger?.reservationCode).filter(Boolean),
+  )
+  if (reservationCodes.size !== 1) return null
+
+  const reservationCode = passengers[0]?.reservationCode
+  if (!reservationCode) return null
+
+  const reservation = await repository.getReservationByCode(reservationCode)
+  return reservation?.flightId ?? null
+}
+
+export async function assignSeatsForParty(
+  flightId: string,
+  passengerIds: string[],
+  seatIds: string[],
+): Promise<AssignSeatsForPartyResult>
+export async function assignSeatsForParty(
+  flightId: string,
+  assignments: SeatPartyAssignment[],
+): Promise<AssignSeatsForPartyResult>
+export async function assignSeatsForParty(
+  passengerIds: string[],
+  seatIds: string[],
+): Promise<AssignSeatsForPartyResult>
+/**
+ * Assign a contiguous block to a party, rolling back completed moves if any assignment fails.
+ */
+export async function assignSeatsForParty(
+  flightIdOrPassengerIds: string | string[],
+  assignmentsOrPassengerIds: SeatPartyAssignment[] | string[],
+  requestedSeatIds?: string[],
+): Promise<AssignSeatsForPartyResult> {
+  let flightId: string
+  let assignments: SeatPartyAssignment[]
+
+  if (Array.isArray(flightIdOrPassengerIds)) {
+    const passengerIds = flightIdOrPassengerIds
+    const seatIds = assignmentsOrPassengerIds as string[]
+    const inferredFlightId = await getPartyFlightId(passengerIds)
+
+    if (!inferredFlightId) {
+      return {
+        ok: false,
+        reason: 'invalid_party',
+        message: 'Choose passengers from the same booking.',
+      }
+    }
+
+    flightId = inferredFlightId
+    assignments = passengerIds.map((passengerId, index) => ({
+      passengerId,
+      seatId: seatIds[index] ?? '',
+    }))
+  } else {
+    flightId = flightIdOrPassengerIds
+    assignments =
+      requestedSeatIds === undefined
+        ? (assignmentsOrPassengerIds as SeatPartyAssignment[])
+        : (assignmentsOrPassengerIds as string[]).map((passengerId, index) => ({
+            passengerId,
+            seatId: requestedSeatIds[index] ?? '',
+          }))
+  }
+
+  if (
+    assignments.length === 0 ||
+    assignments.some((assignment) => !assignment.passengerId || !assignment.seatId) ||
+    new Set(assignments.map((assignment) => assignment.passengerId)).size !== assignments.length ||
+    new Set(assignments.map((assignment) => assignment.seatId.trim().toUpperCase())).size !==
+      assignments.length
+  ) {
+    return {
+      ok: false,
+      reason: 'invalid_party',
+      message: 'Choose one seat for each passenger in your party.',
+    }
+  }
+
+  const passengerIds = assignments.map((assignment) => assignment.passengerId)
+  const seatIds = assignments.map((assignment) => assignment.seatId.trim().toUpperCase())
+  const options = await findSeatsForParty(flightId, passengerIds)
+  const requestedKey = [...seatIds].sort().join('|')
+  const selectedOption = options.find(
+    (option) => [...option.seatIds].sort().join('|') === requestedKey,
+  )
+
+  if (!selectedOption) {
+    return {
+      ok: false,
+      reason: 'invalid_block',
+      message: 'Those seats are not available together. Please choose another option.',
+    }
+  }
+
+  const completed: Extract<AssignSeatResult, { ok: true }>[] = []
+
+  for (let index = 0; index < assignments.length; index += 1) {
+    const assignment = assignments[index]
+    const seatId = seatIds[index]
+    if (!assignment || !seatId) {
+      return {
+        ok: false,
+        reason: 'invalid_party',
+        message: 'Choose one seat for each passenger in your party.',
+      }
+    }
+
+    const result = await assignSeat(assignment.passengerId, seatId)
+    if (!result.ok) {
+      for (const completedAssignment of [...completed].reverse()) {
+        if (completedAssignment.previousSeatId) {
+          await assignSeat(completedAssignment.passengerId, completedAssignment.previousSeatId)
+        }
+      }
+
+      return {
+        ok: false,
+        reason: result.reason,
+        message: result.message,
+      }
+    }
+
+    completed.push(result)
+  }
+
+  return {
+    ok: true,
+    assignments: completed,
+    totalPriceCents: selectedOption.totalPriceCents,
   }
 }
 
